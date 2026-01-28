@@ -1363,12 +1363,25 @@ const btnGpReject = document.getElementById("btnGpReject");
 if(btnGpReject){
   btnGpReject.addEventListener("click", () => {
     if(!state.fap){ alert("Informe a FAP."); return; }
+    const stNow = validationStatusByFap[state.fap] || "Pendente";
+    if(stNow !== "Aguardando Aceite do Gerente de Projeto"){
+      alert("Este cronograma n„o est· aguardando aceite do Gerente de Projeto.");
+      return;
+    }
+    // Solicita ajustes ao LÌder da Torre
+    acceptedChangesByFap[state.fap] = false;
+    validationStatusByFap[state.fap] = "Em ajustes pelo LÌder da Torre";
+    scheduleSave();
+    alert("SolicitaÁ„o de ajustes enviada ao LÌder da Torre. Retornando para a Etapa 4.");
+    goto("p4");
+  });
+}
 
 function handleClientValidated(){
   if(!state.fap){ alert("Informe a FAP."); return; }
   const stNow = validationStatusByFap[state.fap] || "Pendente";
   if(stNow !== "Pronto para Validar cronograma com Cliente"){
-    alert("Este cronograma ainda n√£o est√° pronto para valida√ß√£o com o cliente.");
+    alert("Este cronograma ainda n„o est· pronto para validaÁ„o com o cliente.");
     return;
   }
   validationStatusByFap[state.fap] = STATUS_CLIENT_VALIDATED;
@@ -1395,19 +1408,6 @@ if(btnReprogramStart){
       goto("p1");
       document.getElementById("fap")?.focus();
     });
-  });
-}
-    const stNow = validationStatusByFap[state.fap] || "Pendente";
-    if(stNow !== "Aguardando Aceite do Gerente de Projeto"){
-      alert("Este cronograma n√£o est√° aguardando aceite do Gerente de Projeto.");
-      return;
-    }
-    // Solicita ajustes ao L√≠der da Torre
-    acceptedChangesByFap[state.fap] = false;
-    validationStatusByFap[state.fap] = "Em ajustes pelo L√≠der da Torre";
-    scheduleSave();
-    alert("Solicita√ß√£o de ajustes enviada ao L√≠der da Torre. Retornando para a Etapa 4.");
-    goto("p4");
   });
 }
 function renderValidated(){
