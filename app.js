@@ -215,6 +215,13 @@
     let validationStatusByFap = {};
     let sentToValidation = {}; // fap -> true/false
     let acceptedChangesByFap = {}; // fap -> true/false (aceite do GP) // fap -> "Pendente" | "Enviado" | "Validado"
+    const STATUS_CLIENT_VALIDATED = "Cronograma Atualizado e validado pelo Cliente";
+
+    function isClientValidatedStatus(st){
+      const normalized = (st || "").toLowerCase();
+      return normalized === STATUS_CLIENT_VALIDATED.toLowerCase()
+        || normalized === "cronograma atualizado e validado pelo cliente";
+    }
 
     let currentEligible = [];
     let currentDays = [];
@@ -374,8 +381,8 @@ function toggleStepsByPacks(){
       }
 
       const st = validationStatusByFap[fapVal] || "";
-      if(st === "Cronograma atualizado e validado pelo cliente"){
-        const ok = confirm("Este projeto já tem cronograma validado com Cliente. Deseja reprogramar o Cronogramas e Agendas?");
+      if(isClientValidatedStatus(st)){
+        const ok = confirm("Este projeto já tem cronograma validado com o Cliente. Deseja reprogramar? (Será solicitado o motivo.)");
         if(!ok){
           elFap.value = prevFap;
           return;
@@ -982,7 +989,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
 
     function canExportResumo(){
       const st = validationStatusByFap[state.fap] || "";
-      return !!acceptedChangesByFap[state.fap] || st === "Pronto para Validar cronograma com Cliente" || st === "Cronograma atualizado e validado pelo cliente";
+      return !!acceptedChangesByFap[state.fap] || st === "Pronto para Validar cronograma com Cliente" || isClientValidatedStatus(st);
     }
 
     function exportResumoCSV(){
@@ -1364,7 +1371,7 @@ function handleClientValidated(){
     alert("Este cronograma ainda não está pronto para validação com o cliente.");
     return;
   }
-  validationStatusByFap[state.fap] = "Cronograma atualizado e validado pelo cliente";
+  validationStatusByFap[state.fap] = STATUS_CLIENT_VALIDATED;
   scheduleSave();
 
   const finalMsg = document.getElementById("p5FinalMsg");
@@ -1414,7 +1421,7 @@ function renderValidated(){
       const p5Comment = document.getElementById("p5ValidationComment");
       if(p5Comment) p5Comment.value = state.validationComment || "";
       const reprogramArea = document.getElementById("p5ReprogramArea");
-      if(reprogramArea) reprogramArea.style.display = (st === "Cronograma atualizado e validado pelo cliente") ? "block" : "none";
+      if(reprogramArea) reprogramArea.style.display = isClientValidatedStatus(st) ? "block" : "none";
       updateClientValidationUI(st);
 
       const box = document.getElementById("leaderChangesList");
@@ -1435,7 +1442,7 @@ function renderValidated(){
 if(!hasChanges){
   const stNow = validationStatusByFap[state.fap] || "Pendente";
   const isWaitingGp = stNow === "Aguardando Aceite do Gerente de Projeto";
-  const isDone = stNow.toLowerCase().startsWith("concluído") || stNow.toLowerCase().startsWith("concluido") || stNow === "Pronto para Validar cronograma com Cliente" || stNow === "Cronograma atualizado e validado pelo cliente";
+  const isDone = stNow.toLowerCase().startsWith("concluído") || stNow.toLowerCase().startsWith("concluido") || stNow === "Pronto para Validar cronograma com Cliente" || isClientValidatedStatus(stNow);
 
   // Em validação do Líder (Etapa 4 ainda não concluída): não exibe mensagem de concluído
   if(stNow === "Em validação Líder da Torre"){
@@ -1546,7 +1553,7 @@ function updateClientValidationUI(stNow){
         // Regra de exibição na Etapa 5 baseada em STATUS
   const stNow = validationStatusByFap[state.fap] || "Pendente";
   const isWaitingGp = stNow === "Aguardando Aceite do Gerente de Projeto";
-  const isDone = stNow.toLowerCase().startsWith("concluído") || stNow.toLowerCase().startsWith("concluido") || stNow === "Pronto para Validar cronograma com Cliente" || stNow === "Cronograma atualizado e validado pelo cliente";
+  const isDone = stNow.toLowerCase().startsWith("concluído") || stNow.toLowerCase().startsWith("concluido") || stNow === "Pronto para Validar cronograma com Cliente" || isClientValidatedStatus(stNow);
 
   if(isWaitingGp){
     if(acceptArea) acceptArea.style.display = "block";
