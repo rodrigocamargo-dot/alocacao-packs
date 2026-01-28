@@ -217,6 +217,20 @@
     let acceptedChangesByFap = {}; // fap -> true/false (aceite do GP) // fap -> "Pendente" | "Enviado" | "Validado"
     const STATUS_CLIENT_VALIDATED = "Cronograma Atualizado e validado pelo Cliente";
 
+    function isEditLocked(){
+      if(!state.fap) return false;
+      const st = validationStatusByFap[state.fap] || "";
+      if(!isClientValidatedStatus(st)) return false;
+      return !reprogramReasonsByFap[state.fap];
+    }
+
+    function guardEdit(){
+      if(isEditLocked()){
+        alert("Cronograma validado com cliente. Para alterar, clique em Reprogramar cronograma e agendas.");
+        return true;
+      }
+      return false;
+    }
     function isClientValidatedStatus(st){
       const normalized = (st || "").toLowerCase();
       return normalized === STATUS_CLIENT_VALIDATED.toLowerCase()
@@ -474,7 +488,7 @@ function renderStepsP1(){
     document.getElementById("btnAvancar1").addEventListener("click", () => goto("p2"));
     document.getElementById("btnIrAgenda").addEventListener("click", () => goto("p2"));
 
-    document.getElementById("btnBuscar").addEventListener("click", () => {
+    document.getElementById("btnBuscar").addEventListener("click", () => {\r\n      if(guardEdit()) return;
       const mp = document.getElementById("metodologiaPreview"); if(mp) mp.classList.remove("hidden");
       if(!validatePedido(true)) return;
 
@@ -829,7 +843,7 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
     document.getElementById("btnCloseModal2").addEventListener("click", closeModal);
     modalBack.addEventListener("click", (e) => { if(e.target === modalBack) closeModal(); });
 
-    document.getElementById("btnReserveHalf").addEventListener("click", () => {
+    document.getElementById("btnReserveHalf").addEventListener("click", () => {\r\n      if(guardEdit()) return;
       if(!modalCtx) return;
 
       // Lote (seleção múltipla): mesma Etapa + mesma Modalidade para todos os períodos selecionados
@@ -889,7 +903,7 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
       renderStepsP1();
     });
 
-    document.getElementById("btnReserveDay").addEventListener("click", () => {
+    document.getElementById("btnReserveDay").addEventListener("click", () => {\r\n      if(guardEdit()) return;
       if(!modalCtx) return;
       reserve(modalCtx.codusu, modalCtx.iso, ["M","T"]);
       closeModal();
@@ -899,7 +913,7 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
       renderStepsP1();
     });
 
-    document.getElementById("btnCancelReserve").addEventListener("click", () => {
+    document.getElementById("btnCancelReserve").addEventListener("click", () => {\r\n      if(guardEdit()) return;
       if(!modalCtx) return;
       const before = reservas.length;
       reservas = reservas.filter(r => !(r.fap===state.fap && r.codusu===modalCtx.codusu && r.dataISO===modalCtx.iso));
@@ -913,7 +927,7 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
     });
 
     
-    function reserve(codusu, iso, turnos){
+    function reserve(codusu, iso, turnos){\r\n      if(guardEdit()) return;
       const etapa = (document.getElementById("mEtapa").value || "").trim();
       if(!etapa){
         alert("Selecione uma etapa (obrigatória) para salvar a reserva.");
@@ -968,7 +982,7 @@ const byId = Object.fromEntries(consultoresBase.map(c => [c.codusu, c]));
 
     // Resumo
 document.getElementById("btnVoltarAgenda").addEventListener("click", () => goto("p2"));
-document.getElementById("btnLimpar").addEventListener("click", () => {
+document.getElementById("btnLimpar").addEventListener("click", () => {\r\n      if(guardEdit()) return;
       if(!confirm("Deseja limpar TODAS as reservas deste FAP?")) return;
       reservas = reservas.filter(r => r.fap !== state.fap);
       scheduleSave();
@@ -1298,7 +1312,7 @@ function guardP5(){
 
 // ===== Ações globais (fallback) para Etapa 4: Cancelar/Trocar =====
     // Uso: onclick direto nos botões para evitar problemas de binding em re-render.
-    window.leaderCancel = function(i){
+    window.leaderCancel = function(i){\r\n      if(guardEdit()) return;
       try{
         const list2 = reservas
           .filter(r => r.fap===state.fap)
@@ -2158,7 +2172,7 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       }
     }
 
-function confirmSwap(){
+function confirmSwap(){\r\n      if(guardEdit()) return;
       try{
         console.log('confirmSwap called', swapCtx);
       const r = swapCtx.reserva;
@@ -2359,7 +2373,7 @@ if(cbtn){
 
 
     // ===== Ação robusta: abrir modal de reserva para seleção múltipla =====
-    function openSelectedModal(){
+    function openSelectedModal(){\r\n      if(guardEdit()) return;
       if(!selectedSlots || selectedSlots.length < 1){
         alert("Selecione pelo menos 1 período antes de reservar.");
         return;
