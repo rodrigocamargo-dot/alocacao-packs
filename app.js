@@ -22,7 +22,7 @@
     };
     // Catálogo (MVP): dados do pedido por FAP
     // Em produção, isso viria do ERP/CRM (ex.: Sankhya) via API.
-    let fapCatalog = {
+        let fapCatalog = {
       "1010": {
         cliente: "ITC INDUSTRIA DE TERCEIRIZACAO DE COSMETICOS",
         gp: "Isabel Vieira",
@@ -31,11 +31,9 @@
         gestorPMO: "Andreia Comaccio",
         packIds: ["5309","5283","5284"]
       },
-
       "100001": { cliente: "Politintas", gp: "Renata", filial: "Slim BH" },
-      "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberlândia" },
-      "100003": { cliente: "AGC", gp: "Carol", filial: "Slim ES" }
-      ,
+      "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberl�ndia" },
+      "100003": { cliente: "AGC", gp: "Carol", filial: "Slim ES" },
       "31200": {
         cliente: "Labor Engenharia e Tecnologia SA",
         gp: "Milca Delmonico",
@@ -51,7 +49,8 @@
         lider: "Adriano Goncalves",
         gestorPMO: "Kassius Lima",
         packIds: ["5316","5317","5318"]
-      };
+      }
+    };
 
 
     const etapasPadrao = ["Validação de Escopo","Simulação","Go-live","Entrada em Produção"];
@@ -460,7 +459,7 @@ function toggleStepsByPacks(){
         const snap = perFapData[fapVal] || {};
         if(snap.dtIni) state.dtIni = snap.dtIni;
         if(snap.dtFim) state.dtFim = snap.dtFim;
-        if(Array.isArray(snap.packIds)) state.packIds = snap.packIds.slice();
+        if(Array.isArray(snap.packIds) && snap.packIds.length) state.packIds = snap.packIds.slice();
         if(typeof snap.obs === "string") state.obs = snap.obs;
         if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
 
@@ -1968,7 +1967,7 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
         if(fapEl) fapEl.value = prev;
       }
     }
-function openReprogramModal\(fap, onConfirm, prevFap=""\)\{
+function openReprogramModal(fap, onConfirm, prevFap=""){
       reprogramCtx.open = true;
       reprogramCtx.fap = fap;
       reprogramCtx.onConfirm = onConfirm || null;
