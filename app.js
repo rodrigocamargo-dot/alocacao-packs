@@ -234,7 +234,7 @@
     }
     function applyEditLockUI(){
       const locked = isEditLocked();
-      const allow = new Set(["fap","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail","btnVoltarAgenda","btnResumoPdf","btnResumoCsv","btnGotoResumoP4","btnGotoResumoP5","btnReprogramYes","btnReprogramView"]);
+      const allow = new Set(["fap","btnBuscarProjeto","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail","btnVoltarAgenda","btnResumoPdf","btnResumoCsv","btnGotoResumoP4","btnGotoResumoP5","btnReprogramYes","btnReprogramView"]);
       document.querySelectorAll("input, select, textarea, button").forEach((el) => {
         if(allow.has(el.id)) return;
         if(locked){
