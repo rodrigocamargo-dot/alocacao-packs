@@ -1089,6 +1089,80 @@
     let reprogramReasonsByFap = {}; // fap -> {reason, detail, whenISO}
     let resumoRowsCache = [];
 
+    // PersistÃªncia simples (localStorage)
+    const STORAGE_KEY = "locacao-recursos-v1";
+
+    function scheduleSave(){
+      try{
+        const payload = {
+          state,
+          reservas,
+          validationStatusByFap,
+          sentToValidation,
+          acceptedChangesByFap,
+          leaderChanges,
+          reprogramReasonsByFap
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      }catch(e){
+        console.warn("Falha ao salvar dados locais.", e);
+      }
+    }
+
+    async function loadData(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      }catch(e){
+        console.warn("Falha ao carregar dados locais.", e);
+        return null;
+      }
+    }
+
+    function applyData(data){
+      if(!data || typeof data !== "object") return;
+      if(data.state && typeof data.state === "object"){
+        Object.assign(state, data.state);
+      }
+      if(Array.isArray(data.reservas)){
+        reservas = data.reservas;
+      }
+      if(data.validationStatusByFap && typeof data.validationStatusByFap === "object"){
+        validationStatusByFap = data.validationStatusByFap;
+      }
+      if(data.sentToValidation && typeof data.sentToValidation === "object"){
+        sentToValidation = data.sentToValidation;
+      }
+      if(data.acceptedChangesByFap && typeof data.acceptedChangesByFap === "object"){
+        acceptedChangesByFap = data.acceptedChangesByFap;
+      }
+      if(Array.isArray(data.leaderChanges)){
+        leaderChanges = data.leaderChanges;
+      }
+      if(data.reprogramReasonsByFap && typeof data.reprogramReasonsByFap === "object"){
+        reprogramReasonsByFap = data.reprogramReasonsByFap;
+      }
+    }
+
+    function applyStateToUI(){
+      const fapEl = document.getElementById("fap");
+      if(fapEl) fapEl.value = state.fap || "";
+      const dtIniEl = document.getElementById("dtIni");
+      if(dtIniEl && state.dtIni) dtIniEl.value = state.dtIni;
+      const dtFimEl = document.getElementById("dtFim");
+      if(dtFimEl && state.dtFim) dtFimEl.value = state.dtFim;
+      const obsEl = document.getElementById("obs");
+      if(obsEl) obsEl.value = state.obs || "";
+      const p4Comment = document.getElementById("p4ValidationComment");
+      if(p4Comment) p4Comment.value = state.validationComment || "";
+
+      const packSet = new Set((state.packIds || []).filter(Boolean));
+      document.querySelectorAll('input[name="packs"]').forEach((cb) => {
+        cb.checked = packSet.has(cb.value);
+      });
+    }
+
     function getReservaEtapaStatus(etapa){
       // Retorna: "none" | "partial" | "full"
       try{
