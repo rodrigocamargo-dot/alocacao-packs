@@ -96,6 +96,7 @@
       { fap:"TESTE", packId:"5283", codusu:"U006", dataISO:"2026-03-01", turno:"M", etapa:"Entrada em Producao", modalidade:"Remoto", justPJ:"Teste BP" }
     );
     let reprogramReasonsByFap = {}; // fap -> {reason, detail, whenISO}
+    let perFapData = {}; // fap -> {dtIni, dtFim, packIds, obs, validationComment}
     let resumoRowsCache = [];
 
     // PersistÃªncia simples (localStorage)
@@ -103,6 +104,7 @@
 
     function scheduleSave(){
       try{
+        updatePerFapData();
         const payload = {
           state,
           reservas,
@@ -110,7 +112,8 @@
           sentToValidation,
           acceptedChangesByFap,
           leaderChanges,
-          reprogramReasonsByFap
+          reprogramReasonsByFap,
+          perFapData
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       }catch(e){
@@ -151,6 +154,9 @@
       }
       if(data.reprogramReasonsByFap && typeof data.reprogramReasonsByFap === "object"){
         reprogramReasonsByFap = data.reprogramReasonsByFap;
+      }
+      if(data.perFapData && typeof data.perFapData === "object"){
+        perFapData = data.perFapData;
       }
     }
 
@@ -232,7 +238,17 @@
       }
       return false;
     }
-    function applyEditLockUI(){
+
+    function updatePerFapData(){
+      if(!state.fap) return;
+      perFapData[state.fap] = {
+        dtIni: state.dtIni || "",
+        dtFim: state.dtFim || "",
+        packIds: Array.isArray(state.packIds) ? state.packIds.slice() : [],
+        obs: state.obs || "",
+        validationComment: state.validationComment || ""
+      };
+    }    function applyEditLockUI(){
       const locked = isEditLocked();
       const allow = new Set(["fap","btnBuscarProjeto","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail","btnVoltarAgenda","btnResumoPdf","btnResumoCsv","btnGotoResumoP4","btnGotoResumoP5","btnReprogramYes","btnReprogramView"]);
       document.querySelectorAll("input, select, textarea, button").forEach((el) => {
@@ -265,7 +281,8 @@
     let lastSelectedIdx = null;
 
 
-    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false };\r\n    let pendingFap = "";
+    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false };
+    let pendingFap = "";
 
     // Mostrar packs somente após informar FAP
     function togglePacksVisibility(){
@@ -427,6 +444,28 @@ function toggleStepsByPacks(){
         }
 
         applyFapSelection(fapVal);
+
+        const snap = perFapData[fapVal] || {};
+        if(snap.dtIni) state.dtIni = snap.dtIni;
+        if(snap.dtFim) state.dtFim = snap.dtFim;
+        if(Array.isArray(snap.packIds)) state.packIds = snap.packIds.slice();
+        if(typeof snap.obs === "string") state.obs = snap.obs;
+        if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
+
+        if(!state.packIds || state.packIds.length === 0){
+          const fromRes = reservas
+            .filter(r => r.fap === fapVal)
+            .map(r => r.packId)
+            .filter(Boolean);
+          state.packIds = Array.from(new Set(fromRes));
+        }
+
+        state.searched = false;
+        togglePacksVisibility();
+        toggleStepsByPacks();
+        refreshPreview();
+        computeEligible();
+
         applyStateToUI();
         renderStepsP1();
         try{ syncP2(); }catch(e){}
