@@ -1381,7 +1381,7 @@ function handleClientValidated(){
   if(!state.fap){ alert("Informe a FAP."); return; }
   const stNow = validationStatusByFap[state.fap] || "Pendente";
   if(stNow !== "Pronto para Validar cronograma com Cliente"){
-    alert("Este cronograma ainda não está pronto para validação com o cliente.");
+    alert("Cronograma validado com cliente e atualizado.");
     return;
   }
   validationStatusByFap[state.fap] = STATUS_CLIENT_VALIDATED;
