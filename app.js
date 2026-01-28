@@ -234,7 +234,7 @@
     }
     function applyEditLockUI(){
       const locked = isEditLocked();
-      const allow = new Set(["fap","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail","btnVoltarAgenda","btnResumoPdf","btnResumoCsv","btnGotoResumoP4","btnGotoResumoP5"]);
+      const allow = new Set(["fap","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail","btnVoltarAgenda","btnResumoPdf","btnResumoCsv","btnGotoResumoP4","btnGotoResumoP5","btnReprogramYes","btnReprogramView"]);
       document.querySelectorAll("input, select, textarea, button").forEach((el) => {
         if(allow.has(el.id)) return;
         if(locked){
@@ -1882,7 +1882,37 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       $("#swapBackdrop").setAttribute("aria-hidden","true");
     }
 
-    function openReprogramModal(fap, onConfirm, prevFap=""){
+    let reprogramChoiceCtx = { open:false, fap:null, prevFap:"" };
+
+    function openReprogramChoice(fap, prevFap=""){
+      reprogramChoiceCtx.open = true;
+      reprogramChoiceCtx.fap = fap;
+      reprogramChoiceCtx.prevFap = prevFap || "";
+      const ctx = document.getElementById("reprogramChoiceText");
+      if(ctx) ctx.textContent = `FAP ${fap}`;
+      const back = document.getElementById("reprogramChoiceBackdrop");
+      if(back){
+        back.style.display = "flex";
+        back.setAttribute("aria-hidden","false");
+      }
+    }
+
+    function closeReprogramChoice(restoreFap=true){
+      const prev = reprogramChoiceCtx.prevFap || "";
+      reprogramChoiceCtx.open = false;
+      reprogramChoiceCtx.fap = null;
+      reprogramChoiceCtx.prevFap = "";
+      const back = document.getElementById("reprogramChoiceBackdrop");
+      if(back){
+        back.style.display = "none";
+        back.setAttribute("aria-hidden","true");
+      }
+      if(restoreFap){
+        const fapEl = document.getElementById("fap");
+        if(fapEl) fapEl.value = prev;
+      }
+    }
+function openReprogramModal\(fap, onConfirm, prevFap=""\)\{
       reprogramCtx.open = true;
       reprogramCtx.fap = fap;
       reprogramCtx.onConfirm = onConfirm || null;
@@ -2285,7 +2315,34 @@ function confirmSwap(){
 
     // Events do modal
     document.addEventListener("click", (e) => {
-// Confirmar troca (delegado): funciona mesmo que o HTML do modal esteja após o <script>
+      const ry = e.target?.closest?.("#btnReprogramYes");
+      if(ry){
+        e.preventDefault();
+        const fapVal = reprogramChoiceCtx.fap;
+        const prev = reprogramChoiceCtx.prevFap;
+        closeReprogramChoice(false);
+        if(fapVal){
+          openReprogramModal(fapVal, () => {
+            applyFapSelection(fapVal);
+            goto("p1");
+            document.getElementById("fap")?.focus();
+          }, prev);
+        }
+        return;
+      }
+      const rv = e.target?.closest?.("#btnReprogramView");
+      if(rv){
+        e.preventDefault();
+        const fapVal = reprogramChoiceCtx.fap;
+        closeReprogramChoice(false);
+        if(fapVal){
+          applyFapSelection(fapVal);
+          goto("p3");
+          applyEditLockUI();
+        }
+        return;
+      }
+      // Confirmar troca (delegado): funciona mesmo que o HTML do modal esteja após o <script>
 const cbtn = e.target?.closest?.("#btnSwapConfirm");
 if(cbtn){
   e.preventDefault();
@@ -2314,6 +2371,7 @@ if(cbtn){
       const rbtn = e.target?.closest?.("#btnReprogramClose, #btnReprogramCancel");
       if(rbtn) closeReprogramModal();
       if(e.target?.id === "reprogramBackdrop") closeReprogramModal();
+      if(e.target?.id === "reprogramChoiceBackdrop") closeReprogramChoice();
       const rConfirm = e.target?.closest?.("#btnReprogramConfirm");
       if(rConfirm){
         const reason = document.getElementById("reprogramReason")?.value || "";
@@ -2341,6 +2399,7 @@ if(cbtn){
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape" && swapCtx.open) closeSwapModal();
       if(e.key === "Escape" && reprogramCtx.open) closeReprogramModal();
+      if(e.key === "Escape" && reprogramChoiceCtx.open) closeReprogramChoice();
     });
 
     ["swapSearch","swapVinculo","swapSort","swapOnlyFree"].forEach(id => {

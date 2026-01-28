@@ -777,7 +777,27 @@
   </div>
 
 
-  <!-- ===== Modal: Reprogramação de Cronograma ===== -->
+    <!-- ===== Modal: Cronograma já validado (Reprogramar ou apenas ver) ===== -->
+  <div class="modalBackdrop" id="reprogramChoiceBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reprogramChoiceTitle">
+      <div class="modalHeader">
+        <div>
+          <h3 id="reprogramChoiceTitle">Cronograma ja validado</h3>
+          <div class="muted" id="reprogramChoiceText">—</div>
+        </div>
+      </div>
+      <div class="modalBody">
+        <p class="muted">Este cronograma já foi validado pelo cliente. Deseja reprogramar? Se não, você pode apenas ver o resumo das agendas.</p>
+      </div>
+      <div class="modalFooter">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end">
+          <button class="secondary" style="width:auto; padding:10px 12px" id="btnReprogramView">Somente ver agendas</button>
+          <button class="primary" style="width:auto; padding:10px 12px" id="btnReprogramYes">SIM</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- ===== Modal: Reprogramação de Cronograma ===== -->
   <div class="modalBackdrop" id="reprogramBackdrop" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="reprogramTitle">
       <div class="modalHeader">
