@@ -28,7 +28,8 @@
         gp: "Isabel Vieira",
         filial: "Filial Belo Horizonte",
         lider: "Renata Pinheiro",
-        gestorPMO: "Andreia Comaccio"
+        gestorPMO: "Andreia Comaccio",
+        packIds: ["5309","5283","5284"]
       },
 
       "100001": { cliente: "Politintas", gp: "Renata", filial: "Slim BH" },
@@ -40,9 +41,17 @@
         gp: "Milca Delmonico",
         filial: "Slim BH",
         lider: "Adriano Goncalves",
-        gestorPMO: "Kassius Lima"
-      }
-    };
+        gestorPMO: "Kassius Lima",
+        packIds: ["5316","5317","5318"]
+      },
+      "32100": {
+        cliente: "Labor Engenharia e Tecnologia SA",
+        gp: "Milca Delmonico",
+        filial: "Slim BH",
+        lider: "Adriano Goncalves",
+        gestorPMO: "Kassius Lima",
+        packIds: ["5316","5317","5318"]
+      };
 
 
     const etapasPadrao = ["Validação de Escopo","Simulação","Go-live","Entrada em Produção"];
@@ -419,6 +428,9 @@ function toggleStepsByPacks(){
       state.filial  = info?.filial || "";
       state.lider   = info?.lider || "";
       state.gestorPMO = info?.gestorPMO || "";
+      if(Array.isArray(info?.packIds) && info.packIds.length){
+        state.packIds = info.packIds.slice();
+      }
       state.searched = false;
       togglePacksVisibility();
       refreshPreview();
@@ -469,6 +481,8 @@ function toggleStepsByPacks(){
         applyStateToUI();
         renderStepsP1();
         try{ syncP2(); }catch(e){}
+        renderResumo();
+        renderAgenda();
         scheduleSave();
       });
     }
