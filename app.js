@@ -265,7 +265,7 @@
     let lastSelectedIdx = null;
 
 
-    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false };
+    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false };\r\n    let pendingFap = "";
 
     // Mostrar packs somente após informar FAP
     function togglePacksVisibility(){
@@ -408,28 +408,28 @@ function toggleStepsByPacks(){
     }
 
     elFap.addEventListener("input", () => {
-      const prevFap = state.fap || "";
-      const fapVal = elFap.value.trim();
-      if(!fapVal){
-        applyFapSelection("");
-        return;
-      }
-
-      const st = validationStatusByFap[fapVal] || "";
-      if(isClientValidatedStatus(st)){
-        const ok = confirm("Este projeto já tem cronograma validado com o Cliente. Deseja reprogramar? (Será solicitado o motivo.)");
-        if(!ok){
-          elFap.value = prevFap;
+      pendingFap = elFap.value.trim();
+    });
+    const btnBuscarProjeto = document.getElementById("btnBuscarProjeto");
+    if(btnBuscarProjeto){
+      btnBuscarProjeto.addEventListener("click", () => {
+        const prevFap = state.fap || "";
+        const fapVal = (pendingFap || elFap.value || "").trim();
+        if(!fapVal){
+          alert("Informe a FAP para buscar o projeto.");
           return;
         }
-        openReprogramModal(fapVal, () => {
-          applyFapSelection(fapVal);
-        }, prevFap);
-        return;
-      }
 
-      applyFapSelection(fapVal);
-    });
+        const st = validationStatusByFap[fapVal] || "";
+        if(isClientValidatedStatus(st)){
+          openReprogramChoice(fapVal, prevFap);
+          return;
+        }
+
+        applyFapSelection(fapVal);
+        scheduleSave();
+      });
+    }
     elIni.addEventListener("change", () => { state.dtIni = elIni.value; state.searched = false; togglePacksVisibility(); refreshPreview(); });
     elFim.addEventListener("change", () => { state.dtFim = elFim.value; state.searched = false; togglePacksVisibility(); refreshPreview(); });
     elObs.addEventListener("input", () => { state.obs = elObs.value; });
