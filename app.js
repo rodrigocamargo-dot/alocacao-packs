@@ -427,6 +427,9 @@ function toggleStepsByPacks(){
         }
 
         applyFapSelection(fapVal);
+        applyStateToUI();
+        renderStepsP1();
+        try{ syncP2(); }catch(e){}
         scheduleSave();
       });
     }
