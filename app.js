@@ -154,7 +154,7 @@
       }
     }
 
-    function applyStateToUI(){
+        function applyStateToUI(){
       const fapEl = document.getElementById("fap");
       if(fapEl) fapEl.value = state.fap || "";
       const dtIniEl = document.getElementById("dtIni");
@@ -170,8 +170,9 @@
       document.querySelectorAll('input[name="packs"]').forEach((cb) => {
         cb.checked = packSet.has(cb.value);
       });
-    }
 
+      applyEditLockUI();
+    }
     function getReservaEtapaStatus(etapa){
       // Retorna: "none" | "partial" | "full"
       try{
@@ -230,6 +231,26 @@
         return true;
       }
       return false;
+    }
+    function applyEditLockUI(){
+      const locked = isEditLocked();
+      const allow = new Set(["fap","btnReprogramStart","btnReprogramConfirm","btnReprogramCancel","btnReprogramClose","reprogramReason","reprogramDetail"]);
+      document.querySelectorAll("input, select, textarea, button").forEach((el) => {
+        if(allow.has(el.id)) return;
+        if(locked){
+          if(!el.disabled){
+            el.setAttribute("data-lock-disabled", "1");
+            el.disabled = true;
+            if(el.tagName === "BUTTON") el.classList.add("isDisabled");
+          }
+          return;
+        }
+        if(el.getAttribute("data-lock-disabled") === "1"){
+          el.disabled = false;
+          el.removeAttribute("data-lock-disabled");
+          if(el.tagName === "BUTTON") el.classList.remove("isDisabled");
+        }
+      });
     }
     function isClientValidatedStatus(st){
       const normalized = (st || "").toLowerCase();
@@ -488,7 +509,8 @@ function renderStepsP1(){
     document.getElementById("btnAvancar1").addEventListener("click", () => goto("p2"));
     document.getElementById("btnIrAgenda").addEventListener("click", () => goto("p2"));
 
-    document.getElementById("btnBuscar").addEventListener("click", () => {\r\n      if(guardEdit()) return;
+    document.getElementById("btnBuscar").addEventListener("click", () => {
+      if(guardEdit()) return;
       const mp = document.getElementById("metodologiaPreview"); if(mp) mp.classList.remove("hidden");
       if(!validatePedido(true)) return;
 
@@ -843,7 +865,8 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
     document.getElementById("btnCloseModal2").addEventListener("click", closeModal);
     modalBack.addEventListener("click", (e) => { if(e.target === modalBack) closeModal(); });
 
-    document.getElementById("btnReserveHalf").addEventListener("click", () => {\r\n      if(guardEdit()) return;
+    document.getElementById("btnReserveHalf").addEventListener("click", () => {
+      if(guardEdit()) return;
       if(!modalCtx) return;
 
       // Lote (seleção múltipla): mesma Etapa + mesma Modalidade para todos os períodos selecionados
@@ -903,7 +926,8 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
       renderStepsP1();
     });
 
-    document.getElementById("btnReserveDay").addEventListener("click", () => {\r\n      if(guardEdit()) return;
+    document.getElementById("btnReserveDay").addEventListener("click", () => {
+      if(guardEdit()) return;
       if(!modalCtx) return;
       reserve(modalCtx.codusu, modalCtx.iso, ["M","T"]);
       closeModal();
@@ -913,7 +937,8 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
       renderStepsP1();
     });
 
-    document.getElementById("btnCancelReserve").addEventListener("click", () => {\r\n      if(guardEdit()) return;
+    document.getElementById("btnCancelReserve").addEventListener("click", () => {
+      if(guardEdit()) return;
       if(!modalCtx) return;
       const before = reservas.length;
       reservas = reservas.filter(r => !(r.fap===state.fap && r.codusu===modalCtx.codusu && r.dataISO===modalCtx.iso));
@@ -927,7 +952,8 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
     });
 
     
-    function reserve(codusu, iso, turnos){\r\n      if(guardEdit()) return;
+    function reserve(codusu, iso, turnos){
+      if(guardEdit()) return;
       const etapa = (document.getElementById("mEtapa").value || "").trim();
       if(!etapa){
         alert("Selecione uma etapa (obrigatória) para salvar a reserva.");
@@ -982,7 +1008,8 @@ const byId = Object.fromEntries(consultoresBase.map(c => [c.codusu, c]));
 
     // Resumo
 document.getElementById("btnVoltarAgenda").addEventListener("click", () => goto("p2"));
-document.getElementById("btnLimpar").addEventListener("click", () => {\r\n      if(guardEdit()) return;
+document.getElementById("btnLimpar").addEventListener("click", () => {
+      if(guardEdit()) return;
       if(!confirm("Deseja limpar TODAS as reservas deste FAP?")) return;
       reservas = reservas.filter(r => r.fap !== state.fap);
       scheduleSave();
@@ -1312,7 +1339,8 @@ function guardP5(){
 
 // ===== Ações globais (fallback) para Etapa 4: Cancelar/Trocar =====
     // Uso: onclick direto nos botões para evitar problemas de binding em re-render.
-    window.leaderCancel = function(i){\r\n      if(guardEdit()) return;
+    window.leaderCancel = function(i){
+      if(guardEdit()) return;
       try{
         const list2 = reservas
           .filter(r => r.fap===state.fap)
@@ -1583,6 +1611,7 @@ function updateClientValidationUI(stNow){
     if(finalMsg) finalMsg.style.display = "none";
     updateClientValidationUI(stNow);
   }
+  applyEditLockUI();
 }
 
     // Etapa 4/5 botões
@@ -2172,7 +2201,8 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       }
     }
 
-function confirmSwap(){\r\n      if(guardEdit()) return;
+function confirmSwap(){
+      if(guardEdit()) return;
       try{
         console.log('confirmSwap called', swapCtx);
       const r = swapCtx.reserva;
@@ -2304,6 +2334,7 @@ if(cbtn){
         if(typeof reprogramCtx.onConfirm === "function"){
           reprogramCtx.onConfirm();
         }
+        applyEditLockUI();
       }
     });
 
@@ -2373,7 +2404,8 @@ if(cbtn){
 
 
     // ===== Ação robusta: abrir modal de reserva para seleção múltipla =====
-    function openSelectedModal(){\r\n      if(guardEdit()) return;
+    function openSelectedModal(){
+      if(guardEdit()) return;
       if(!selectedSlots || selectedSlots.length < 1){
         alert("Selecione pelo menos 1 período antes de reservar.");
         return;
