@@ -619,10 +619,10 @@
         <div class="tab" data-tab="acompanhamento">Status de Suas Solicitações</div>
         <div class="tab-break"></div>
         <div class="tab" data-tab="validacao">Validação Torre</div>
-        <div class="tab" data-tab="clt">Cadastro de Recursos CLT</div>
+        <div class="tab" data-tab="clt">Cadastro Recurso Sankhya</div>
         <div class="tab" data-tab="gestao">Parceiros Homologados</div>
-        <div class="tab" data-tab="terceiros">Cadastro Recursos terceiros</div>
-        <div class="tab" data-tab="clt-disponibilizar">Disponibilizar CLT para Base</div>
+        <div class="tab" data-tab="terceiros">Cadastro Recursos Homologados</div>
+        <div class="tab" data-tab="clt-disponibilizar">Disponibilizar Recurso Sankhya para Base</div>
         <div class="tab" data-tab="valor-hora">Valor hora</div>
       </div>
     </div>
@@ -743,8 +743,8 @@
               <div>
                 <label>Filtro de Recursos</label>
                 <select id="inFiltroTipo">
-                  <option value="TERCEIRO">Terceiro</option>
-                  <option value="TERCEIRO_CLT">Terceiro + CLT</option>
+                  <option value="TERCEIRO">Homologado</option>
+                  <option value="TERCEIRO_CLT">Homologado + Recursos Sankhya</option>
                 </select>
               </div>
               <div>
@@ -1958,6 +1958,13 @@ function getKnowledgeLabel(c){
   return "—";
 }
 
+function getConsultorTypeLabel(c){
+  if(c.type === "CLT-DB") return "RECURSO SANKHYA";
+  if(c.type === "TERCEIRO-PRESENCIAL") return "HOMOLOGADO-PRESENCIAL FILIAL SLIM";
+  if(c.type === "TERCEIRO") return "HOMOLOGADO";
+  return c.type || "—";
+}
+
 function fmtDateSafe(d){
   if(!d) return "—";
   const x = new Date(d);
@@ -2713,7 +2720,7 @@ function buildDaysRange(dtIni, dtFim){
       tdName.innerHTML = `
         <div class="meta">
         ${priorityMsg}
-        <div><b>${c.name}</b> <span class="tag">${c.type}</span></div>
+        <div><b>${c.name}</b> <span class="tag">${getConsultorTypeLabel(c)}</span></div>
         <div class="sub">Senioridade: <b>${c.seniority}</b> • Ociosidade: <b>${c.idlePct}%</b></div>
         <div class="sub">Parceiro: <b>${c.partnerName}</b></div>
         <div class="sub">Proficiência do recurso: <b>${getKnowledgeLabel(c)}</b></div>
