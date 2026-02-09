@@ -49,7 +49,7 @@
       background: linear-gradient(90deg, rgba(34,197,94,.55), rgba(96,165,250,.45), rgba(245,158,11,.55));
       opacity:.7;
     }
-    .wrap{max-width:1280px;margin:0 auto;padding:16px 18px}
+    .wrap{max-width:none;width:100%;margin:0 auto;padding:16px 18px}
     .topbar{
       display:flex;
       align-items:flex-start;
@@ -93,6 +93,7 @@
       letter-spacing:.2px;
       transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
     }
+    .tab-break{flex-basis:100%;height:0}
     .tab:hover{transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.25)}
     .tab.active{
       background: linear-gradient(135deg, rgba(34,197,94,.28), rgba(96,165,250,.18));
@@ -614,14 +615,15 @@
       <div class="brand"><span class="dot"></span> MVP - Alocação Agenda pelo Próprio Parceiro</div>
       <div class="tabs">
         <div class="tab active" data-tab="alocacao">Localizar Agenda Atendimento</div>
-        <div class="tab" data-tab="resumo">Resumo</div>
+        <div class="tab" data-tab="resumo">Resumo da sua Solicitação</div>
+        <div class="tab" data-tab="acompanhamento">Status de Suas Solicitações</div>
+        <div class="tab-break"></div>
         <div class="tab" data-tab="validacao">Validação Torre</div>
-        <div class="tab" data-tab="acompanhamento">Acompanhamento</div>
+        <div class="tab" data-tab="clt">Cadastro de Recursos CLT</div>
         <div class="tab" data-tab="gestao">Parceiros Homologados</div>
-        <div class="tab" data-tab="terceiros">Cadastro Recurso Terceiros</div>
-        <div class="tab" data-tab="clt">Cadastro Recursos CLT</div>
+        <div class="tab" data-tab="terceiros">Cadastro Recursos terceiros</div>
         <div class="tab" data-tab="clt-disponibilizar">Disponibilizar CLT para Base</div>
-        <div class="tab" data-tab="valor-hora">Valor Hora</div>
+        <div class="tab" data-tab="valor-hora">Valor hora</div>
       </div>
     </div>
   </div>
@@ -1409,7 +1411,7 @@
     <section id="tab-acompanhamento" class="hidden">
       <div class="card">
           <div class="content">
-            <h2>Acompanhamento das solicitações</h2>
+            <h2>Status de Suas Solicitações</h2>
 
             <div class="toolbar">
               <div class="chip">Aprovadas: <span id="kAcompAp">0</span></div>
