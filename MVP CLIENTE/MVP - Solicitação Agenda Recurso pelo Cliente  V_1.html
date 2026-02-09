@@ -3779,6 +3779,16 @@ function printResumoForReservation(r){
   const totalHoras = (r.slots?.length || 0) * 4;
   const vh = baseConsultant ? getValorHoraValueFor(r.demanda?.pack || "", baseConsultant) : 0;
   const totalValor = vh > 0 ? (totalHoras * vh) : 0;
+  const consultorType = baseConsultant?.type || r.consultant?.type || "";
+  const consultorParceiro = consultorType && String(consultorType).startsWith("CLT")
+    ? "RECURSO SANKHYA"
+    : (baseConsultant?.partnerName || r.consultant?.partnerName || "—");
+  const consultorInfo = {
+    nome: baseConsultant?.name || r.consultant?.name || "—",
+    parceiro: consultorParceiro,
+    email: baseConsultant?.email || "—",
+    telefone: baseConsultant?.telefone || "—"
+  };
   const agendasRows = Array.from(slotsByDay.entries()).map(([dayKeyRaw, periods])=>{
     const norm = periods.map(p => String(p || "").toLowerCase());
     const hasManha = norm.some(p => p.includes("manhã") || p.includes("manha"));
@@ -3819,6 +3829,23 @@ function printResumoForReservation(r){
         </tbody>
       </table>
     </div>
+    <h3>Dados do Consultor</h3>
+    <table>
+      <tbody>
+        <tr>
+          <th>Nome</th>
+          <td>${escapeHtml(consultorInfo.nome)}</td>
+          <th>Parceiro</th>
+          <td>${escapeHtml(consultorInfo.parceiro)}</td>
+        </tr>
+        <tr>
+          <th>E-mail</th>
+          <td>${escapeHtml(consultorInfo.email)}</td>
+          <th>Telefone</th>
+          <td>${escapeHtml(consultorInfo.telefone)}</td>
+        </tr>
+      </tbody>
+    </table>
     <h3>Agendas Reservadas</h3>
     <table>
       <thead>
