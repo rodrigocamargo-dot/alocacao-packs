@@ -267,6 +267,14 @@
 
             <div class="steps" id="p2Steps" style="margin-top:12px"></div>
 
+            <div class="miniCard" style="margin-top:12px">
+              <h4 style="margin-bottom:6px">Nível de proficiência</h4>
+              <div class="muted">Executor – Executa tarefas mais simples e rotineiras, como levantamento inicial de dados e auxílio em treinamento, seguindo processos definidos. Requer supervisão.</div>
+              <div class="muted" style="margin-top:6px">Autônomo – Lida com tarefas mais complexas, como análises detalhadas de processos de negócios, configuração do sistema e suporte a testes. Consegue propor soluções para problemas dentro da sua área de atuação.</div>
+              <div class="muted" style="margin-top:6px">Proficiente – Possui domínio técnico em uma área muito particular do sistema, atuando como referência naquele assunto específico. Foca mais na configuração, parametrização e solução de problemas técnicos pontuais dentro da sua especialidade, seguindo as diretrizes do projeto.</div>
+              <div class="muted" style="margin-top:6px">Referência – Além de ser especialista em alguma área, atua de forma autônoma e estratégica, comunica-se com clareza e precisão tanto com as equipes técnicas, quanto com os níveis diretivos dos clientes. Possui maturidade e experiência para resolver problemas de alta complexidade e lidar com cenários de mudança organizacional durante a implantação.</div>
+            </div>
+
             <div class="row" style="margin-top:12px">
               <button class="secondary" id="btnVoltarPedido">← Voltar</button>
               <button class="primary" id="btnIrResumo">Ir para Resumo →</button>
@@ -687,12 +695,12 @@
               <h4 style="margin-bottom:6px">Encontrar recurso disponível</h4>
               <div class="toolbar">
                 <input id="swapSearch" placeholder="Buscar por nome ou CODUSU (ex.: U001)" />
-                <select id="swapVinculo">
-                  <option value="REC">Recursos (CLT + Terceiro)</option>
-                  <option value="ALL">Todos (CLT + Terceiro + BP)</option>
-                  <option value="CLT">Somente CLT</option>
-                  <option value="PJ">Somente Terceiro</option>
-                  <option value="BP">Somente BP</option>
+                <select id="swapProf">
+                  <option value="ALL">Todos os níveis</option>
+                  <option value="executor">Executor</option>
+                  <option value="autonomo">Autônomo</option>
+                  <option value="proficiente">Proficiente</option>
+                  <option value="referencia">Referência</option>
                 </select>
                 <select id="swapSort">
                   <option value="SMART">Ordenação inteligente (preferir CLT e disponibilidade)</option>

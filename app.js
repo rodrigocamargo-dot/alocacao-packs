@@ -56,17 +56,17 @@
     const etapasPadrao = ["Validação de Escopo","Simulação","Go-live","Entrada em Produção"];
 
     let consultoresBase = [
-      { codusu:"U001", nome:"MARCELO.AVELAR",  sub:"FILIAL DC SUDESTE", nivel:"Senior" },
-      { codusu:"U002", nome:"BRUNA.BOLT",      sub:"TERCEIROS",          nivel:"Pleno"  },
-      { codusu:"U003", nome:"DANILO.BOLT",     sub:"TERCEIROS",          nivel:"Junior" },
-      { codusu:"U004", nome:"NAYRA.SILVA",     sub:"FILIAL ES",          nivel:"Pleno"  },
-      { codusu:"U005", nome:"HERMES.LIMA",     sub:"FILIAL BH",          nivel:"Senior" },
-      { codusu:"U006", nome:"MARCO.AURELIO",   sub:"BP",                 nivel:"Senior" },
-      { codusu:"U007", nome:"MARINA.ROCHA",    sub:"DELIVERY CENTER",    nivel:"Junior" },
-      { codusu:"U008", nome:"HENRIQUE.PINTO",  sub:"DELIVERY CENTER",    nivel:"Senior" },
-      { codusu:"U009", nome:"ANDRES.PIPET",    sub:"DELIVERY CENTER",    nivel:"Pleno"  },
-      { codusu:"U010", nome:"THIAGO.BOLT",     sub:"TERCEIROS",          nivel:"Senior" },
-      { codusu:"U011", nome:"GUILHERME.BRION", sub:"TERCEIROS",          nivel:"Senior" },
+      { codusu:"U001", nome:"MARCELO.AVELAR",  sub:"FILIAL DC SUDESTE", nivel:"Proficiente" },
+      { codusu:"U002", nome:"BRUNA.BOLT",      sub:"TERCEIROS",          nivel:"Aut?nomo"  },
+      { codusu:"U003", nome:"DANILO.BOLT",     sub:"TERCEIROS",          nivel:"Executor" },
+      { codusu:"U004", nome:"NAYRA.SILVA",     sub:"FILIAL ES",          nivel:"Aut?nomo"  },
+      { codusu:"U005", nome:"HERMES.LIMA",     sub:"FILIAL BH",          nivel:"Proficiente" },
+      { codusu:"U006", nome:"MARCO.AURELIO",   sub:"BP",                 nivel:"Refer?ncia" },
+      { codusu:"U007", nome:"MARINA.ROCHA",    sub:"DELIVERY CENTER",    nivel:"Executor" },
+      { codusu:"U008", nome:"HENRIQUE.PINTO",  sub:"DELIVERY CENTER",    nivel:"Proficiente" },
+      { codusu:"U009", nome:"ANDRES.PIPET",    sub:"DELIVERY CENTER",    nivel:"Aut?nomo"  },
+      { codusu:"U010", nome:"THIAGO.BOLT",     sub:"TERCEIROS",          nivel:"Proficiente" },
+      { codusu:"U011", nome:"GUILHERME.BRION", sub:"TERCEIROS",          nivel:"Refer?ncia" },
     ];
 
     let cert = {
@@ -379,6 +379,10 @@ function toggleStepsByPacks(){
       const s = (sub || "").toUpperCase();
       if(s.includes("BP")) return "BP";
       return s.includes("TERCEIR") ? "PJ" : "CLT";
+    }
+
+    function normalizeLevel(level){
+      return (level || "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     }
 
     function nowISO(){
@@ -717,9 +721,7 @@ function renderStepsP1(){
         const tdName = document.createElement("td");
         tdName.innerHTML = `
           <div class="name">${c.nome}</div>
-          <div class="sub">${c.sub}</div>
-          <div class="sub">Nível: <b style="color:#e5e7eb">${c.nivel}</b></div>
-          <div class="sub">Vínculo: <b style="color:#e5e7eb">${c.vinculo}</b></div>
+          <div class="sub">Nivel de proficiencia: <b style="color:#e5e7eb">${c.nivel}</b></div>
         `;
         tr.appendChild(tdName);
 
@@ -1915,7 +1917,7 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
 
       // Defaults
       $("#swapOnlyFree").checked = true;
-      $("#swapVinculo").value = "REC";
+      $("#swapProf").value = "ALL";
       $("#swapSort").value = "SMART";
       $("#swapSearch").value = "";
 
@@ -2010,23 +2012,18 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
     }
 
     function renderPersonMini(c, reserva, isCurrent=false, slotDateISO=null, slotTurno=null, ignoreReserva=null){
-      if(!c) return `<div class="muted">—</div>`;
-      const vinc = (c.vinculo || vinculoFromSub(c.sub) || "").toUpperCase();
+      if(!c) return `<div class="muted">—</div>`;      const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
       const checkDate = slotDateISO || reserva.dataISO;
       const checkTurno = slotTurno || reserva.turno;
       const slotFree = isSlotFreeConsideringSwap(c.codusu, checkDate, checkTurno, ignoreReserva);
       const badge = slotFree ? `<span class="badge ok">Livre no slot</span>` : `<span class="badge off">Ocupado no slot</span>`;
-      const periodPct = Math.round(periodAvailabilityPct(c.codusu) * 100);
-      const typeChip = vinc === "CLT"
-        ? `<span class="chip good">CLT</span>`
-        : (vinc === "BP" ? `<span class="chip warn">BP</span>` : `<span class="chip warn">TERCEIRO</span>`);
-      return `
+      const periodPct = Math.round(periodAvailabilityPct(c.codusu) * 100);      return `
         <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">
           <div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap">
               <b>${c.nome}</b>
               <span class="chip">${c.codusu}</span>
-              ${typeChip}
+              ${profChip}
             </div>
             <div class="muted" style="margin-top:4px">${(c.sub||"").trim() || "—"}</div>
             <div class="meta" style="margin-top:8px">${badge} <span class="badge">${periodPct}% livre no período</span></div>
@@ -2143,7 +2140,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
       const { dateISO, turno } = getSwapTargetSlot();
 
       const q = ($("#swapSearch").value || "").trim().toLowerCase();
-      const vinc = $("#swapVinculo").value;
+      const prof = $("#swapProf").value;
       const onlyFree = $("#swapOnlyFree").checked;
       const sort = $("#swapSort").value;
 
@@ -2153,7 +2150,8 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
           const slotFree = isSlotFreeConsideringSwap(c.codusu, dateISO, turno, r);
           const pct = periodAvailabilityPct(c.codusu);
           const v = (c.vinculo || vinculoFromSub(c.sub) || "").toUpperCase();
-          return { ...c, _slotFree: slotFree, _pct: pct, _v: v };
+          const p = normalizeLevel(c.nivel);
+          return { ...c, _slotFree: slotFree, _pct: pct, _v: v, _prof: p };
         })
         .filter(c => c.codusu !== r.codusu); // evita sugerir o mesmo
 
@@ -2161,12 +2159,8 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
       if(q){
         cands = cands.filter(c => (c.nome||"").toLowerCase().includes(q) || (c.codusu||"").toLowerCase().includes(q));
       }
-      if(vinc !== "ALL"){
-        if(vinc === "REC"){
-          cands = cands.filter(c => c._v === "CLT" || c._v === "PJ");
-        }else{
-          cands = cands.filter(c => c._v === vinc);
-        }
+      if(prof !== "ALL"){
+        cands = cands.filter(c => c._prof === prof);
       }
       if(onlyFree){
         cands = cands.filter(c => c._slotFree);
@@ -2199,9 +2193,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
 
       for(const c of cands){
         const slotBadge = c._slotFree ? `<span class="badge ok">Livre no slot</span>` : `<span class="badge off">Ocupado</span>`;
-        const typeChip = c._v === "CLT"
-          ? `<span class="chip good">CLT</span>`
-          : (c._v === "BP" ? `<span class="chip warn">BP</span>` : `<span class="chip warn">TERCEIRO</span>`);
+        const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
         const pct = Math.round(c._pct*100);
 
         const el = document.createElement("div");
@@ -2213,14 +2205,14 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
             <h4>${c.nome}</h4>
             <div class="meta">
               <span class="chip">${c.codusu}</span>
-              ${typeChip}
+              ${profChip}
               ${slotBadge}
               <span class="badge">${pct}% livre no período</span>
             </div>
             <div class="muted" style="margin-top:6px">${(c.sub||"").trim() || "—"}</div>
           </div>
           <div class="right">
-            <div class="kpi"><b>${c._v==="CLT" ? "Preferencial" : "Exceção"}</b><br/><span class="muted">regra PJ/CLT</span></div>
+                        <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">nivel de proficiencia</span></div>
             <button class="secondary" style="width:auto; padding:8px 10px" type="button">Selecionar</button>
           </div>
         `;
@@ -2457,7 +2449,7 @@ if(cbtn){
       if(e.key === "Escape" && reprogramChoiceCtx.open) closeReprogramChoice();
     });
 
-    ["swapSearch","swapVinculo","swapSort","swapOnlyFree"].forEach(id => {
+    ["swapSearch","swapProf","swapSort","swapOnlyFree"].forEach(id => {
       const el = document.getElementById(id);
       if(el){
         el.addEventListener("input", renderSwapCandidates);
