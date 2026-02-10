@@ -1805,6 +1805,12 @@ function normalizePriorityAvail(value){
 }
 
 function getKnowledgeLabel(c){
+  const proficiencyFromSeniority = (s) => {
+    if(s === "Junior") return "Executor";
+    if(s === "Pleno") return "Autônomo";
+    if(s === "Senior") return "Proficiênte";
+    return "Executor";
+  };
   const packNeed = $$("inPack")?.value.trim() || "";
   if(c.type === "CLT-DB"){
     const res = state.clt.find(x=>x.id===c.id);
@@ -1812,7 +1818,7 @@ function getKnowledgeLabel(c){
       const lvl = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
       return lvl ? shortNivelLabel(lvl) : "—";
     }
-    return "—";
+    return proficiencyFromSeniority(c.seniority);
   }
   if(c.type === "TERCEIRO-PRESENCIAL"){
     const res = state.terceiros.find(x=>x.id===c.id);
@@ -1820,9 +1826,9 @@ function getKnowledgeLabel(c){
       const lvl = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
       return lvl ? shortNivelLabel(lvl) : "—";
     }
-    return "—";
+    return proficiencyFromSeniority(c.seniority);
   }
-  return String(c.score ?? "—");
+  return proficiencyFromSeniority(c.seniority);
 }
 
 function fmtDateSafe(d){
