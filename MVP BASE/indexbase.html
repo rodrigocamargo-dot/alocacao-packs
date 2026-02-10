@@ -742,6 +742,14 @@
             </div>
 
             <div class="hint">
+              <div><b>Proficiência (detalhamento):</b></div>
+              <div><b>Executor</b>: Executa tarefas simples e rotineiras, com supervisão.</div>
+              <div><b>Autônomo</b>: Atua em tarefas mais complexas, com autonomia técnica dentro da área.</div>
+              <div><b>Proficiênte</b>: Possui domínio técnico especializado e atua como referência no tema.</div>
+              <div><b>Referencia</b>: Especialista estratégico, conduz temas de alta complexidade e interlocução com níveis diretivos.</div>
+            </div>
+
+            <div class="hint">
               Regra MVF: seleção <b>somente</b> dentro do mesmo consultor. Se clicar em outro consultor, aparece aviso e a seleção atual é mantida.
             </div>
           </div>
@@ -2513,10 +2521,17 @@ function buildDaysRange(dtIni, dtFim){
       const presMsg = c.type === "TERCEIRO-PRESENCIAL"
         ? `<div class="sub" style="color:#22c55e;font-weight:800">Existe recurso presencial com agenda disponível</div>`
         : "";
+      const typeLabel = c.type === "CLT-DB"
+        ? "RECURSO SANKHYA"
+        : c.type === "TERCEIRO-PRESENCIAL"
+          ? "HOMOLOGADO-PRESENCIAL FILIAL SLIM"
+          : c.type === "TERCEIRO"
+            ? "HOMOLOGADO"
+          : c.type;
       tdName.innerHTML = `
         <div class="meta">
         ${priorityMsg}
-        <div><b>${c.name}</b> <span class="tag">${c.type}</span></div>
+        <div><b>${c.name}</b> <span class="tag">${typeLabel}</span></div>
         <div class="sub">Senioridade: <b>${c.seniority}</b> • Ociosidade: <b>${c.idlePct}%</b></div>
         <div class="sub">Parceiro: <b>${c.partnerName}</b></div>
         <div class="sub">Nível de conhecimento (Pack): <b>${getKnowledgeLabel(c)}</b></div>
