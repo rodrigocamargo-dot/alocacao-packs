@@ -854,17 +854,6 @@
 
             <div class="row" style="margin-top:10px">
               <div>
-                <label>Gerente de Relacionamento</label>
-                <input id="hGerRel" placeholder="Ex: João Silva" />
-              </div>
-              <div>
-                <label>Gerente do Sucesso Cliente</label>
-                <input id="hGerCS" placeholder="Ex: Maria Souza" />
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:10px">
-              <div>
                 <label>Nº de Recursos</label>
                 <input id="hRecursos" type="number" min="0" value="5" />
               </div>
@@ -915,8 +904,6 @@
       <th>Nº Recursos</th>
       <th>Tempo (meses)</th>
       <th>Início parceria</th>
-      <th>Ger. Relacionamento</th>
-      <th>Ger. Sucesso Cliente</th>
       <th style="width:120px">Ações</th>
     </tr>
                 </thead>
@@ -953,6 +940,17 @@
               <input id="cAnalista" placeholder="Ex: Maria Silva" />
             </div>
 
+            <div class="row" style="margin-top:10px">
+              <div>
+                <label>Gerente de Relacionamento</label>
+                <input id="cGerRel" placeholder="Ex: João Silva" />
+              </div>
+              <div>
+                <label>Gerente do Sucesso Cliente</label>
+                <input id="cGerCS" placeholder="Ex: Maria Souza" />
+              </div>
+            </div>
+
             <div class="actions">
               <button class="primary" id="btnAddCliente">Adicionar Cliente</button>
               <button class="danger" id="btnClearLocal">Limpar dados locais</button>
@@ -978,6 +976,8 @@
                     <th>Cliente</th>
                     <th>Filial Slim</th>
                     <th>Analista</th>
+                    <th>Ger. Relacionamento</th>
+                    <th>Ger. Sucesso Cliente</th>
                   </tr>
                 </thead>
                 <tbody id="tbodyClientes"></tbody>
@@ -1864,7 +1864,9 @@ const state = {
       code: c.code,
       name: parts.name || c.name,
       filial: parts.filial || c.filial || "",
-      analista: c.analista || ""
+      analista: c.analista || "",
+      gerenteRel: c.gerenteRel || "",
+      gerenteCS: c.gerenteCS || ""
     };
   }),
   homologados: DEFAULT_HOMOLOGADOS.map(h => ({
@@ -1874,8 +1876,6 @@ const state = {
     resources: h.resources || 0,
     months: h.months || 0,
     inicio: h.inicio || "",
-    gerenteRel: h.gerenteRel || "",
-    gerenteCS: h.gerenteCS || "",
     orderRank: null
   })),
   terceiros: buildDefaultTerceiros(),
@@ -2080,7 +2080,9 @@ function normalizeLoaded(data){
       code: c.code || null,
       name: c.filial ? (c.name || "Cliente") : (splitClientName(c.name || "").name || "Cliente"),
       filial: c.filial || splitClientName(c.name || "").filial || "",
-      analista: c.analista || ""
+      analista: c.analista || "",
+      gerenteRel: c.gerenteRel || "",
+      gerenteCS: c.gerenteCS || ""
     }));
   } else if(Array.isArray(data.partners) && data.partners.length){
     // compatibilidade com versão antiga (partners => clients)
@@ -2089,7 +2091,9 @@ function normalizeLoaded(data){
       code: c.code || null,
       name: c.filial ? (c.name || "Cliente") : (splitClientName(c.name || "").name || "Cliente"),
       filial: c.filial || splitClientName(c.name || "").filial || "",
-      analista: c.analista || ""
+      analista: c.analista || "",
+      gerenteRel: c.gerenteRel || "",
+      gerenteCS: c.gerenteCS || ""
     }));
   }
 
@@ -2101,8 +2105,6 @@ function normalizeLoaded(data){
       resources: Number(h.resources) || 0,
       months: Number(h.months) || 0,
       inicio: h.inicio || "",
-      gerenteRel: h.gerenteRel || "",
-      gerenteCS: h.gerenteCS || "",
       orderRank: Number.isFinite(h.orderRank) ? h.orderRank : null
     }));
   }
@@ -3182,6 +3184,8 @@ function renderClientes(){
       <td><b>${c.name}</b></td>
       <td>${c.filial ?? ""}</td>
       <td>${c.analista ?? ""}</td>
+      <td>${c.gerenteRel ?? ""}</td>
+      <td>${c.gerenteCS ?? ""}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -3220,8 +3224,6 @@ function renderHomologados(){
         <td>${resCell}</td>
         <td>${monCell}</td>
         <td>${iniCell}</td>
-        <td>${p.gerenteRel || ""}</td>
-        <td>${p.gerenteCS || ""}</td>
         <td>
           <div class="actions tight" style="margin-top:0">
             <button class="btn-sm danger" data-del="${p.id}">Remover</button>
@@ -3926,7 +3928,9 @@ function resetClientes(){
     code: c.code,
     name: splitClientName(c.name).name || c.name,
     filial: splitClientName(c.name).filial || c.filial || "",
-    analista: c.analista || ""
+    analista: c.analista || "",
+    gerenteRel: c.gerenteRel || "",
+    gerenteCS: c.gerenteCS || ""
   }));
   state.editing.clienteId = null;
   $$("btnAddCliente").textContent = "Adicionar Cliente";
@@ -4530,6 +4534,10 @@ if(codigoEl && nomeEl){
       if(filialEl && match.filial) filialEl.value = match.filial;
       const analistaEl = $$("cAnalista");
       if(analistaEl && match.analista) analistaEl.value = match.analista;
+      const gerRelEl = $$("cGerRel");
+      if(gerRelEl && match.gerenteRel) gerRelEl.value = match.gerenteRel;
+      const gerCsEl = $$("cGerCS");
+      if(gerCsEl && match.gerenteCS) gerCsEl.value = match.gerenteCS;
     }
   });
 }
@@ -4675,6 +4683,10 @@ if(demCodEl && demNomeEl){
       if(filialEl && match.filial) filialEl.value = match.filial;
       const analistaEl = $$("inAnalista");
       if(analistaEl && match.analista) analistaEl.value = match.analista;
+      const gerRelEl = $$("inGerRel");
+      if(gerRelEl && match.gerenteRel) gerRelEl.value = match.gerenteRel;
+      const gerCsEl = $$("inGerCS");
+      if(gerCsEl && match.gerenteCS) gerCsEl.value = match.gerenteCS;
     }
   });
 }
@@ -4726,8 +4738,6 @@ if(hCodeEl){
     const existing = findHomologadoByCode(code);
     if(existing){
       $$("hNome").value = existing.name || "";
-      $$("hGerRel").value = existing.gerenteRel || "";
-      $$("hGerCS").value = existing.gerenteCS || "";
       $$("hRecursos").value = existing.resources ?? 0;
       $$("hTempo").value = existing.months ?? 0;
       $$("hInicio").value = existing.inicio || "";
@@ -4978,6 +4988,8 @@ $$("btnAddCliente").addEventListener("click", ()=>{
   let name = $$("cNome").value.trim();
   const filial = $$("cFilial").value.trim();
   const analista = $$("cAnalista").value.trim();
+  const gerenteRel = $$("cGerRel").value.trim();
+  const gerenteCS = $$("cGerCS").value.trim();
   let finalName = name;
   let finalFilial = filial;
   if(!filial){
@@ -5003,6 +5015,8 @@ $$("btnAddCliente").addEventListener("click", ()=>{
       target.name = finalName;
       target.filial = finalFilial;
       target.analista = analista;
+      target.gerenteRel = gerenteRel;
+      target.gerenteCS = gerenteCS;
     }
     state.editing.clienteId = null;
     $$("btnAddCliente").textContent = "Adicionar Cliente";
@@ -5012,13 +5026,17 @@ $$("btnAddCliente").addEventListener("click", ()=>{
       code: code || null,
       name: finalName,
       filial: finalFilial,
-      analista
+      analista,
+      gerenteRel,
+      gerenteCS
     });
   }
   $$("cCodigo").value="";
   $$("cNome").value="";
   $$("cFilial").value="";
   $$("cAnalista").value="";
+  $$("cGerRel").value="";
+  $$("cGerCS").value="";
   saveState();
   renderClientes();
   toast("Cliente salvo", "Cadastro atualizado com sucesso.", "info", 2200);
@@ -5029,8 +5047,6 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
   const name = $$("hNome").value.trim();
   const resources = Number($$("hRecursos").value);
   const months = Number($$("hTempo").value);
-  const gerenteRel = $$("hGerRel").value.trim();
-  const gerenteCS = $$("hGerCS").value.trim();
   const inicio = $$("hInicio").value;
   if(!name){ toast("Campo obrigatório", "Informe o nome do parceiro homologado.", "warn", 2600); return; }
   const shouldRecalc = confirmRecalcOrdem();
@@ -5043,8 +5059,6 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       target.resources = isNaN(resources)?0:resources;
       target.months = isNaN(months)?0:months;
       target.inicio = inicio || "";
-      target.gerenteRel = gerenteRel;
-      target.gerenteCS = gerenteCS;
     }
     state.editing.homologadoId = null;
     $$("btnAddHomologado").textContent = "Adicionar Parceiro";
@@ -5055,15 +5069,11 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       name,
       resources: isNaN(resources)?0:resources,
       months: isNaN(months)?0:months,
-      inicio: inicio || "",
-      gerenteRel,
-      gerenteCS
+      inicio: inicio || ""
     });
   }
   $$("hCodigo").value="";
   $$("hNome").value="";
-  $$("hGerRel").value="";
-  $$("hGerCS").value="";
   $$("hInicio").value="";
   saveState();
   if(state.lastOrderCount > 0) generateOrdemFila();
