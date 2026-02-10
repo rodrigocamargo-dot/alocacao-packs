@@ -864,6 +864,11 @@
             </div>
 
             <div style="margin-top:10px">
+              <label>Valor Hora Negociado (Compra)</label>
+              <input id="hValorHora" placeholder="R$ 0,00" />
+            </div>
+
+            <div style="margin-top:10px">
               <label>Data de início da parceria</label>
               <input id="hInicio" type="date" />
             </div>
@@ -903,6 +908,7 @@
       <th>Parceiro</th>
       <th>Nº Recursos</th>
       <th>Tempo (meses)</th>
+      <th>Valor Hora Negociado (R$)</th>
       <th>Início parceria</th>
       <th style="width:120px">Ações</th>
     </tr>
@@ -1875,6 +1881,7 @@ const state = {
     name: h.name,
     resources: h.resources || 0,
     months: h.months || 0,
+    valorHora: Number(h.valorHora) || 0,
     inicio: h.inicio || "",
     orderRank: null
   })),
@@ -2104,6 +2111,7 @@ function normalizeLoaded(data){
       name: h.name || "Parceiro",
       resources: Number(h.resources) || 0,
       months: Number(h.months) || 0,
+      valorHora: Number(h.valorHora) || 0,
       inicio: h.inicio || "",
       orderRank: Number.isFinite(h.orderRank) ? h.orderRank : null
     }));
@@ -2300,19 +2308,30 @@ document.querySelectorAll(".tab").forEach(t => {
 
 document.addEventListener("input", (e)=>{
   const el = e.target;
-  if(!el || el.dataset.money !== "valor-hora") return;
-  const pack = el.dataset.pack;
-  if(!pack) return;
-  const value = parseBRL(el.value);
-  if(value === null){
-    delete state.valorHora[pack];
-    el.value = "";
+  if(!el) return;
+  if(el.dataset.money === "valor-hora"){
+    const pack = el.dataset.pack;
+    if(!pack) return;
+    const value = parseBRL(el.value);
+    if(value === null){
+      delete state.valorHora[pack];
+      el.value = "";
+      saveState();
+      return;
+    }
+    state.valorHora[pack] = value;
+    el.value = formatBRL(value);
     saveState();
     return;
   }
-  state.valorHora[pack] = value;
-  el.value = formatBRL(value);
-  saveState();
+  if(el.id === "hValorHora"){
+    const value = parseBRL(el.value);
+    if(value === null){
+      el.value = "";
+      return;
+    }
+    el.value = formatBRL(value);
+  }
 });
 
 function validateDemandaInputs(){
@@ -3212,6 +3231,9 @@ function renderHomologados(){
       const monCell = editMode
         ? `<input type="number" min="0" class="h-edit" data-field="months" data-id="${p.id}" value="${p.months}" style="width:80px" />`
         : `${p.months}`;
+      const vhCell = editMode
+        ? `<input type="text" class="h-edit" data-field="valorHora" data-id="${p.id}" value="${p.valorHora ? formatBRL(p.valorHora) : ""}" placeholder="R$ 0,00" style="width:140px" />`
+        : `${p.valorHora ? formatBRL(p.valorHora) : ""}`;
       const iniCell = editMode
         ? `<input type="date" class="h-edit" data-field="inicio" data-id="${p.id}" value="${p.inicio || ""}" />`
         : `${p.inicio ? fmtDateSafe(p.inicio) : ""}`;
@@ -3223,6 +3245,7 @@ function renderHomologados(){
         <td><b>${p.name}</b></td>
         <td>${resCell}</td>
         <td>${monCell}</td>
+        <td>${vhCell}</td>
         <td>${iniCell}</td>
         <td>
           <div class="actions tight" style="margin-top:0">
@@ -3281,6 +3304,15 @@ function renderHomologados(){
           if(field === "resources" || field === "months"){
             const val = Number(input.value);
             target[field] = isNaN(val) ? 0 : val;
+          } else if(field === "valorHora"){
+            const val = parseBRL(input.value);
+            if(val === null){
+              target.valorHora = 0;
+              input.value = "";
+            } else {
+              target.valorHora = val;
+              input.value = formatBRL(val);
+            }
           } else if(field === "inicio"){
             target.inicio = input.value || "";
           }
@@ -3945,6 +3977,7 @@ function resetHomologados(){
     name: h.name,
     resources: h.resources || 0,
     months: h.months || 0,
+    valorHora: Number(h.valorHora) || 0,
     inicio: h.inicio || "",
     orderRank: null
   }));
@@ -4740,6 +4773,7 @@ if(hCodeEl){
       $$("hNome").value = existing.name || "";
       $$("hRecursos").value = existing.resources ?? 0;
       $$("hTempo").value = existing.months ?? 0;
+      $$("hValorHora").value = existing.valorHora ? formatBRL(existing.valorHora) : "";
       $$("hInicio").value = existing.inicio || "";
       state.editing.homologadoId = existing.id;
       $$("btnAddHomologado").textContent = "Salvar alterações";
@@ -5047,6 +5081,7 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
   const name = $$("hNome").value.trim();
   const resources = Number($$("hRecursos").value);
   const months = Number($$("hTempo").value);
+  const valorHora = parseBRL($$("hValorHora").value);
   const inicio = $$("hInicio").value;
   if(!name){ toast("Campo obrigatório", "Informe o nome do parceiro homologado.", "warn", 2600); return; }
   const shouldRecalc = confirmRecalcOrdem();
@@ -5058,6 +5093,7 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       target.name = name;
       target.resources = isNaN(resources)?0:resources;
       target.months = isNaN(months)?0:months;
+      target.valorHora = valorHora === null ? 0 : valorHora;
       target.inicio = inicio || "";
     }
     state.editing.homologadoId = null;
@@ -5069,11 +5105,13 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       name,
       resources: isNaN(resources)?0:resources,
       months: isNaN(months)?0:months,
+      valorHora: valorHora === null ? 0 : valorHora,
       inicio: inicio || ""
     });
   }
   $$("hCodigo").value="";
   $$("hNome").value="";
+  $$("hValorHora").value="";
   $$("hInicio").value="";
   saveState();
   if(state.lastOrderCount > 0) generateOrdemFila();
