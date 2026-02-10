@@ -49,7 +49,7 @@
       background: linear-gradient(90deg, rgba(34,197,94,.55), rgba(96,165,250,.45), rgba(245,158,11,.55));
       opacity:.7;
     }
-    .wrap{max-width:1280px;margin:0 auto;padding:16px 18px}
+    .wrap{width:100%;max-width:none;margin:0;padding:16px 18px}
     .topbar{
       display:flex;
       align-items:flex-start;
@@ -81,6 +81,7 @@
       background: rgba(2,6,23,.35);
       border-radius:16px;
     }
+    .tab-break{flex-basis:100%;height:0}
     .tab{
       padding:10px 14px;
       border:1px solid rgba(38,50,68,.75);
@@ -551,12 +552,13 @@
       <div class="tabs">
         <div class="tab active" data-tab="alocacao">Localizar Recurso</div>
         <div class="tab" data-tab="resumo">Resumo</div>
-        <div class="tab" data-tab="validacao">Validação Torre</div>
         <div class="tab" data-tab="acompanhamento">Acompanhamento</div>
-        <div class="tab" data-tab="gestao">Parceiros Homologados</div>
-        <div class="tab" data-tab="terceiros">Cadastro Recurso Terceiros</div>
+        <div class="tab-break"></div>
+        <div class="tab" data-tab="validacao">Validação Torre</div>
         <div class="tab" data-tab="clt">Cadastro Recursos CLT</div>
         <div class="tab" data-tab="clt-disponibilizar">Disponibilizar CLT para Base</div>
+        <div class="tab" data-tab="gestao">Parceiros Homologados</div>
+        <div class="tab" data-tab="terceiros">Cadastro Recursos Terceiros</div>
       </div>
     </div>
   </div>
