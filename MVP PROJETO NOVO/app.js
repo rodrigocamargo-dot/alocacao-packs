@@ -29,7 +29,13 @@
         filial: "Filial Belo Horizonte",
         lider: "Renata Pinheiro",
         gestorPMO: "Andreia Comaccio",
-        packIds: ["5309","5283","5284"]
+        packIds: ["5309","5283","5284"],
+        etapas: [
+          "Validação de Escopo",
+          "Simulação",
+          "Go-live",
+          "Operação Assistida"
+        ]
       },
       "100001": { cliente: "Politintas", gp: "Renata", filial: "Slim BH" },
       "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberlândia" },
