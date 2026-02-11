@@ -133,6 +133,37 @@
   Dica: marque múltiplos packs para filtrar consultores que atendem <b>todos</b> (interseção).
 </p>
 
+<div id="premissasWrapper" style="margin-top:10px; border:1px solid var(--line); border-radius:12px; padding:10px; background:rgba(15,23,42,.45)">
+  <label style="margin:0 0 8px; font-weight:900">Premissas de busca de recursos</label>
+  <div style="display:grid; gap:6px">
+    <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:8px; align-items:center">
+      <b style="font-size:12px">Segunda</b>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="seg" data-turno="M" checked style="width:auto" />Manhã</label>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="seg" data-turno="T" checked style="width:auto" />Tarde</label>
+    </div>
+    <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:8px; align-items:center">
+      <b style="font-size:12px">Terça</b>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="ter" data-turno="M" checked style="width:auto" />Manhã</label>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="ter" data-turno="T" checked style="width:auto" />Tarde</label>
+    </div>
+    <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:8px; align-items:center">
+      <b style="font-size:12px">Quarta</b>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="qua" data-turno="M" checked style="width:auto" />Manhã</label>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="qua" data-turno="T" checked style="width:auto" />Tarde</label>
+    </div>
+    <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:8px; align-items:center">
+      <b style="font-size:12px">Quinta</b>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="qui" data-turno="M" checked style="width:auto" />Manhã</label>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="qui" data-turno="T" checked style="width:auto" />Tarde</label>
+    </div>
+    <div style="display:grid; grid-template-columns:100px 1fr 1fr; gap:8px; align-items:center">
+      <b style="font-size:12px">Sexta</b>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="sex" data-turno="M" checked style="width:auto" />Manhã</label>
+      <label style="display:flex; align-items:center; gap:6px; margin:0; font-size:12px"><input type="checkbox" name="premissas" data-dia="sex" data-turno="T" checked style="width:auto" />Tarde</label>
+    </div>
+  </div>
+</div>
+
             <div id="stepsWrapper" style="display:none">
             <div class="steps" id="steps">
               <div class="muted">Selecione pelo menos 1 pack para carregar as etapas padrão.</div>
@@ -146,17 +177,17 @@
               <div>
                 <label>Filtro de recurso</label>
                 <select id="p1Vinculo">
-                  <option value="REC">Recursos (CLT + Terceiro)</option>
-                  <option value="ALL">Todos (CLT + Terceiro + BP)</option>
-                  <option value="CLT">Somente CLT</option>
-                  <option value="PJ">Somente Terceiro</option>
+                  <option value="REC">Recursos (Sankhya + Homologado)</option>
+                  <option value="ALL">Todos (Sankhya + Homologado + BP)</option>
+                  <option value="CLT">Somente Sankhya</option>
+                  <option value="PJ">Somente Homologado</option>
                   <option value="BP">Somente BP</option>
                 </select>
               </div>
               <div>
                 <label>Ordenação</label>
                 <select id="p1Sort">
-                  <option value="SMART">Ordenação inteligente (preferir CLT e disponibilidade)</option>
+                  <option value="SMART">Ordenação inteligente (preferir Recurso Sankhya e disponibilidade)</option>
                   <option value="AVAIL">Maior disponibilidade no período</option>
                   <option value="NAME">Nome (A-Z)</option>
                 </select>

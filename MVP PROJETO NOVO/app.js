@@ -57,16 +57,16 @@
 
     let consultoresBase = [
       { codusu:"U001", nome:"MARCELO.AVELAR",  sub:"FILIAL DC SUDESTE", nivel:"Proficiente" },
-      { codusu:"U002", nome:"BRUNA.BOLT",      sub:"TERCEIROS",          nivel:"Aut?nomo"  },
+      { codusu:"U002", nome:"BRUNA.BOLT",      sub:"TERCEIROS",          nivel:"Aut\u00f4nomo"  },
       { codusu:"U003", nome:"DANILO.BOLT",     sub:"TERCEIROS",          nivel:"Executor" },
-      { codusu:"U004", nome:"NAYRA.SILVA",     sub:"FILIAL ES",          nivel:"Aut?nomo"  },
+      { codusu:"U004", nome:"NAYRA.SILVA",     sub:"FILIAL ES",          nivel:"Aut\u00f4nomo"  },
       { codusu:"U005", nome:"HERMES.LIMA",     sub:"FILIAL BH",          nivel:"Proficiente" },
-      { codusu:"U006", nome:"MARCO.AURELIO",   sub:"BP",                 nivel:"Refer?ncia" },
+      { codusu:"U006", nome:"MARCO.AURELIO",   sub:"BP",                 nivel:"Refer\u00eancia" },
       { codusu:"U007", nome:"MARINA.ROCHA",    sub:"DELIVERY CENTER",    nivel:"Executor" },
       { codusu:"U008", nome:"HENRIQUE.PINTO",  sub:"DELIVERY CENTER",    nivel:"Proficiente" },
-      { codusu:"U009", nome:"ANDRES.PIPET",    sub:"DELIVERY CENTER",    nivel:"Aut?nomo"  },
+      { codusu:"U009", nome:"ANDRES.PIPET",    sub:"DELIVERY CENTER",    nivel:"Aut\u00f4nomo"  },
       { codusu:"U010", nome:"THIAGO.BOLT",     sub:"TERCEIROS",          nivel:"Proficiente" },
-      { codusu:"U011", nome:"GUILHERME.BRION", sub:"TERCEIROS",          nivel:"Refer?ncia" },
+      { codusu:"U011", nome:"GUILHERME.BRION", sub:"TERCEIROS",          nivel:"Refer\u00eancia" },
     ];
 
     let cert = {
@@ -140,10 +140,52 @@
       }
     }
 
+    function defaultPremissas(){
+      return {
+        seg_M: true, seg_T: true,
+        ter_M: true, ter_T: true,
+        qua_M: true, qua_T: true,
+        qui_M: true, qui_T: true,
+        sex_M: true, sex_T: true
+      };
+    }
+
+    function normalizePremissas(raw){
+      const base = defaultPremissas();
+      if(!raw || typeof raw !== "object") return base;
+      Object.keys(base).forEach((k) => {
+        base[k] = raw[k] !== false;
+      });
+      return base;
+    }
+
+    function premissaKeyFromSlot(iso, turno){
+      if(!iso || !turno) return null;
+      const d = new Date(iso + "T00:00:00");
+      const dow = d.getDay(); // 0 dom ... 6 sab
+      const dayKeyByDow = { 1:"seg", 2:"ter", 3:"qua", 4:"qui", 5:"sex" };
+      const dayKey = dayKeyByDow[dow];
+      if(!dayKey) return null; // fim de semana: sem premissa explicita
+      return `${dayKey}_${turno}`;
+    }
+
+    function isPremissaEnabled(iso, turno){
+      const key = premissaKeyFromSlot(iso, turno);
+      if(!key) return true; // fim de semana segue comportamento atual
+      const premissas = normalizePremissas(state.premissas);
+      return !!premissas[key];
+    }
+
+    function hasAnyPremissaSelected(){
+      const premissas = normalizePremissas(state.premissas);
+      return Object.values(premissas).some(Boolean);
+    }
+
     function applyData(data){
       if(!data || typeof data !== "object") return;
       if(data.state && typeof data.state === "object"){
         Object.assign(state, data.state);
+        state.premissas = normalizePremissas(state.premissas);
       }
       if(Array.isArray(data.reservas)){
         reservas = data.reservas;
@@ -183,6 +225,12 @@
       const packSet = new Set((state.packIds || []).filter(Boolean));
       document.querySelectorAll('input[name="packs"]').forEach((cb) => {
         cb.checked = packSet.has(cb.value);
+      });
+
+      const premissas = normalizePremissas(state.premissas);
+      document.querySelectorAll('input[name="premissas"]').forEach((cb) => {
+        const key = `${cb.dataset.dia}_${cb.dataset.turno}`;
+        cb.checked = !!premissas[key];
       });
 
       applyEditLockUI();
@@ -254,7 +302,8 @@
         dtFim: state.dtFim || "",
         packIds: Array.isArray(state.packIds) ? state.packIds.slice() : [],
         obs: state.obs || "",
-        validationComment: state.validationComment || ""
+        validationComment: state.validationComment || "",
+        premissas: { ...normalizePremissas(state.premissas) }
       };
     }    function applyEditLockUI(){
       const locked = isEditLocked();
@@ -289,7 +338,7 @@
     let lastSelectedIdx = null;
 
 
-    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false };
+    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false, premissas: defaultPremissas() };
     let pendingFap = "";
 
     // Mostrar packs somente após informar FAP
@@ -420,6 +469,7 @@ function toggleStepsByPacks(){
     const elIni = document.getElementById("dtIni");
     const elFim = document.getElementById("dtFim");
     const elPackChecks = Array.from(document.querySelectorAll('input[name="packs"]'));
+    const elPremissasChecks = Array.from(document.querySelectorAll('input[name="premissas"]'));
     const elObs = document.getElementById("obs");
     const elP4Comment = document.getElementById("p4ValidationComment");
 
@@ -466,6 +516,7 @@ function toggleStepsByPacks(){
         if(Array.isArray(snap.packIds) && snap.packIds.length) state.packIds = snap.packIds.slice();
         if(typeof snap.obs === "string") state.obs = snap.obs;
         if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
+        if(snap.premissas && typeof snap.premissas === "object") state.premissas = normalizePremissas(snap.premissas);
 
         if(!state.packIds || state.packIds.length === 0){
           const fromRes = reservas
@@ -503,7 +554,7 @@ function toggleStepsByPacks(){
           if(id === "p1Vinculo"){
             const v = el.value;
             if(v === "ALL" || v === "BP"){
-              alert("Atencao: esta opcao nao e a melhor pratica. De preferencia para CLT e Terceiros. As agendas reservadas BP passarao por validacao do Lider da Torre e vera possibilidade de negociar com BP.");
+              alert("Atencao: esta opcao nao e a melhor pratica. De preferencia para Sankhya e Homologados. As agendas reservadas BP passarao por validacao do Lider da Torre e vera possibilidade de negociar com BP.");
             }
           }
           renderAgenda();
@@ -520,6 +571,17 @@ function toggleStepsByPacks(){
       toggleStepsByPacks();
       updateActionButtons();
       refreshPreview();
+    }));
+
+    elPremissasChecks.forEach(cb => cb.addEventListener("change", () => {
+      const key = `${cb.dataset.dia}_${cb.dataset.turno}`;
+      const premissas = normalizePremissas(state.premissas);
+      premissas[key] = cb.checked;
+      state.premissas = premissas;
+      state.searched = false;
+      toggleStepsByPacks();
+      refreshPreview();
+      renderAgenda();
     }));
 
 function renderStepsP1(){
@@ -587,7 +649,11 @@ function renderStepsP1(){
         return false;
       }
       if(state.dtFim < state.dtIni){
-        if(showAlert) alert("Data fim não pode ser menor que data início.");
+        if(showAlert) alert("Data fim nao pode ser menor que data inicio.");
+        return false;
+      }
+      if(!hasAnyPremissaSelected()){
+        if(showAlert) alert("Selecione pelo menos uma premissa de dia/periodo para buscar disponibilidade.");
         return false;
       }
       return true;
@@ -677,6 +743,8 @@ function renderStepsP1(){
         }
       }
 
+      list = list.filter(c => c._pct > 0);
+
       if(sortSel === "NAME"){
         list.sort((a,b) => (a.nome||"").localeCompare(b.nome||""));
       }else if(sortSel === "AVAIL"){
@@ -721,7 +789,7 @@ function renderStepsP1(){
         const tdName = document.createElement("td");
         tdName.innerHTML = `
           <div class="name">${c.nome}</div>
-          <div class="sub">Nivel de proficiencia: <b style="color:#e5e7eb">${c.nivel}</b></div>
+          <div class="sub">N\u00edvel de profici\u00eancia: <b style="color:#e5e7eb">${c.nivel}</b></div>
         `;
         tr.appendChild(tdName);
 
@@ -749,9 +817,13 @@ function renderStepsP1(){
 
       tbody.querySelectorAll(".chip").forEach(chip => {
         chip.addEventListener("click", (ev) => {
-          const status = [...chip.classList].find(x => ["L","R"].includes(x));
+          const status = [...chip.classList].find(x => ["L","R","X"].includes(x));
           if(status !== "L"){
-            alert("Este slot já está reservado (R).");
+            if(status === "X"){
+              alert("Este slot esta bloqueado pelas premissas selecionadas.");
+            }else{
+              alert("Este slot ja esta reservado (R).");
+            }
             return;
           }
 
@@ -844,6 +916,7 @@ function renderStepsP1(){
     }
 
 function getSlotStatusLR(codusu, iso, turno, baseLR){
+      if(!isPremissaEnabled(iso, turno)) return "X";
       const has = reservas.some(r =>
         r.fap===state.fap &&
         r.codusu===codusu &&
@@ -1818,22 +1891,10 @@ if(btnEnviar){
       const dtFimEl = document.getElementById("dtFim");
       const todayISO = toISODate(today);
       if(dtIniEl){
-        dtIniEl.min = todayISO;
         dtIniEl.value = state.dtIni || todayISO;
         state.dtIni = dtIniEl.value;
-        dtIniEl.addEventListener("change", () => {
-          if(dtIniEl.value !== todayISO){
-            dtIniEl.value = todayISO;
-            state.dtIni = todayISO;
-            alert("Data inicio e sempre a data de hoje (MVP).");
-            togglePacksVisibility();
-            refreshPreview();
-            scheduleSave();
-          }
-        });
       }
       if(dtFimEl){
-        dtFimEl.min = todayISO;
         dtFimEl.value = state.dtFim || toISODate(in7);
         state.dtFim = dtFimEl.value;
       }
@@ -2067,11 +2128,13 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
       if(!state.dtIni || !state.dtFim) return 0;
       const days = buildDaysRange(state.dtIni, state.dtFim);
       let total = 0, free = 0;
-      for(const d of days){
+      for(let i=0; i<days.length; i++){
+        const d = days[i];
         const iso = toISODate(d);
         for(const t of ["M","T"]){
+          if(!isPremissaEnabled(iso, t)) continue;
           total += 1;
-          const base = baseStatusLR(seedFor(codusu), days.indexOf(d), t);
+          const base = baseStatusLR(seedFor(codusu), i, t);
           const st = getSlotStatusLR(codusu, iso, t, base);
           if(st === "L") free += 1;
         }
@@ -2212,7 +2275,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
             <div class="muted" style="margin-top:6px">${(c.sub||"").trim() || "—"}</div>
           </div>
           <div class="right">
-                        <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">nivel de proficiencia</span></div>
+                        <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">N\u00edvel de profici\u00eancia</span></div>
             <button class="secondary" style="width:auto; padding:8px 10px" type="button">Selecionar</button>
           </div>
         `;
