@@ -489,7 +489,7 @@
             </div>
 
             <div class="hr"></div>
-            <h3 style="margin:8px 0 6px">Alertas: escolha de TERCEIRO ou BP</h3>
+            <h3 style="margin:8px 0 6px">Alertas: escolha de HOMOLOGADO ou BP</h3>
             <div class="list" id="p4ThirdPartyAlerts"></div>
 
             <div id="p4ObsWrap" style="margin-top:10px; display:none">
@@ -734,7 +734,7 @@
                   <option value="referencia">Referência</option>
                 </select>
                 <select id="swapSort">
-                  <option value="SMART">Ordenação inteligente (preferir CLT e disponibilidade)</option>
+                  <option value="SMART">Ordenação inteligente (preferir Recurso Sankhya e disponibilidade)</option>
                   <option value="AVAIL">Maior disponibilidade no período</option>
                   <option value="NAME">Nome (A-Z)</option>
                 </select>
@@ -787,19 +787,19 @@
 
             <div class="miniCard" id="swapJustBox" style="display:none">
               <h4>Justificativa (obrigatória)</h4>
-              <div class="muted">Você selecionou <b>Terceiro</b> com <b>CLT disponível</b> no período. Informe a justificativa para auditoria/validação.</div>
-              <textarea id="swapJustText" placeholder="Ex.: Especialização técnica necessária / Continuidade do projeto / Indisponibilidade do CLT"></textarea>
+              <div class="muted">Você selecionou <b>Homologados</b> com <b>Recurso Sankhya disponível</b> no período. Informe a justificativa para auditoria/validação.</div>
+              <textarea id="swapJustText" placeholder="Ex.: Especialização técnica necessária / Continuidade do projeto / Indisponibilidade do Recurso Sankhya"></textarea>
               <div class="quickReasons">
                 <button class="secondary" type="button" data-reason="Especialização técnica necessária">Especialização técnica</button>
                 <button class="secondary" type="button" data-reason="Continuidade do projeto">Continuidade</button>
-                <button class="secondary" type="button" data-reason="Indisponibilidade futura do CLT">Indisponibilidade do CLT</button>
+                <button class="secondary" type="button" data-reason="Indisponibilidade futura do Recurso Sankhya">Indisponibilidade do Recurso Sankhya</button>
                 <button class="secondary" type="button" data-reason="Solicitação do cliente">Solicitação do cliente</button>
               </div>
             </div>
 
             <div class="miniCard" style="margin-top:10px">
               <h4>Observações</h4>
-              <div class="muted">Dica: priorize <b>CLT</b> quando houver disponibilidade e use Terceiro com justificativa clara. Evite conflitos no mesmo slot.</div>
+              <div class="muted">Dica: priorize <b>Recurso Sankhya</b> quando houver disponibilidade e use Homologados com justificativa clara. Evite conflitos no mesmo slot.</div>
             </div>
           </div>
         </div>
@@ -808,7 +808,7 @@
       <div class="modalFooter">
         <div class="left">
           <span class="badge" id="swapBadgeSlot">Slot: —</span>
-          <span class="badge" id="swapBadgeRule">Regra PJ/CLT: —</span>
+          <span class="badge" id="swapBadgeRule">Regra Homologados/Recurso Sankhya: —</span>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end">
           <button class="secondary" style="width:auto; padding:10px 12px" id="btnSwapCancel">Cancelar</button>

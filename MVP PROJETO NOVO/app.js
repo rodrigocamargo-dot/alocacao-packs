@@ -1447,9 +1447,9 @@ function guardP5(){
         const turno = r.turno === "M" ? "Manhã" : "Tarde";
         const packNome = packs[r.packId]?.nome || r.packId || "—";
         const vincRaw = vinculoFromSub(c?.sub);
-        const vincLabel = vincRaw === "PJ" ? "TERCEIRO" : vincRaw;
+        const vincLabel = vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw);
         const warnClt = (vincRaw === "PJ" && cltAvail)
-          ? `<div style="margin-top:4px; color:#fde68a"><b>Alerta:</b> há CLT disponível no período.</div>`
+          ? `<div style="margin-top:4px; color:#fde68a"><b>Alerta:</b> ha RECURSO SANKHYA disponivel no periodo.</div>`
           : "";
 
         const wrap = document.createElement("div");
@@ -1838,7 +1838,7 @@ if(btnEnviar){
       });
 
       if(thirds.length === 0){
-        box.innerHTML = `<div class="muted">Nenhum alerta de TERCEIRO/BP nesta FAP.</div>`;
+        box.innerHTML = `<div class="muted">Nenhum alerta de HOMOLOGADO/BP nesta FAP.</div>`;
         return;
       }
 
@@ -1860,7 +1860,7 @@ if(btnEnviar){
         const turno = x.turno === "M" ? "Manhã" : "Tarde";
         const packNome = packs[x.packId]?.nome || x.packId;
         const v = vinculoFromSub(x.sub);
-        const vLabel = v === "PJ" ? "TERCEIRO" : "BP";
+        const vLabel = v === "PJ" ? "HOMOLOGADO" : "BP";
         div.innerHTML = `
           <div>
             <b>${x.nome} • ${vLabel}</b>
@@ -1952,7 +1952,7 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       // Badges
       $("#swapBadgeSlot").textContent = `Slot atual: ${fmtBR(reserva.dataISO)} • ${turno}`;
       const cltAvail = hasCltAvailabilityInPeriod();
-      $("#swapBadgeRule").textContent = `Regra PJ/CLT: ${cltAvail ? "há CLT disponível no período" : "sem CLT disponível no período"}`;
+      $("#swapBadgeRule").textContent = `Regra Homologados/Recurso Sankhya: ${cltAvail ? "ha Recurso Sankhya disponivel no periodo" : "sem Recurso Sankhya disponivel no periodo"}`;
 
       // Preenche box atual
       const atual = consultoresBase.find(c => c.codusu===reserva.codusu);
@@ -2090,7 +2090,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               <span class="chip">${c.codusu}</span>
               ${profChip}
             </div>
-            <div class="muted" style="margin-top:4px">${(c.sub||"").trim() || "—"}</div>
+            <div class="muted" style="margin-top:4px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
             <div class="meta" style="margin-top:8px">${badge} <span class="badge">${periodPct}% livre no período</span></div>
           </div>
           ${isCurrent ? `<span class="badge">Atual</span>` : ``}
@@ -2276,7 +2276,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               ${slotBadge}
               <span class="badge">${pct}% livre no período</span>
             </div>
-            <div class="muted" style="margin-top:6px">${(c.sub||"").trim() || "—"}</div>
+            <div class="muted" style="margin-top:6px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
           </div>
           <div class="right">
                         <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">N\u00edvel de profici\u00eancia</span></div>
@@ -2384,7 +2384,7 @@ function confirmSwap(){
       if(swapCtx.needJust){
         just = ($("#swapJustText").value || "").trim();
         if(!just){
-          alert("Justificativa obrigatória para escolher Terceiro quando há CLT disponível no período.");
+          alert("Justificativa obrigatoria para escolher Homologados quando ha Recurso Sankhya disponivel no periodo.");
           return;
         }
       }
