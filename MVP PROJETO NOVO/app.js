@@ -37,7 +37,16 @@
       "2020": {
         cliente: "TRIUNFO SOLUCOES EM ENGENHARIA",
         gp: "FLAVIO.LEMOS",
-        filial: "SLIM FILIAL BRASIL CENTRAL"
+        filial: "SLIM FILIAL BRASIL CENTRAL",
+        etapas: [
+          "Aprovação do Setlist",
+          "Setup da Trilha",
+          "OK da Produção",
+          "Entrega Tecnica para Unidade",
+          "Showtime - Entrega para Cliente",
+          "Rodada de Palco",
+          "Dia da Estreia"
+        ]
       },
       "31200": {
         cliente: "Labor Engenharia e Tecnologia SA",
@@ -59,6 +68,14 @@
 
 
     const etapasPadrao = ["Validação de Escopo","Simulação","Go-live","Entrada em Produção"];
+
+    function getEtapasProjetoAtual(){
+      const etapasCustom = fapCatalog[state.fap]?.etapas;
+      if(Array.isArray(etapasCustom) && etapasCustom.length){
+        return etapasCustom;
+      }
+      return etapasPadrao;
+    }
 
     let consultoresBase = [
       { codusu:"U001", nome:"MARCELO.AVELAR",  sub:"FILIAL DC SUDESTE", nivel:"Proficiente" },
@@ -494,6 +511,39 @@ function toggleStepsByPacks(){
       refreshPreview();
     }
 
+    function loadProjectByFap(fapVal){
+      applyFapSelection(fapVal);
+
+      const snap = perFapData[fapVal] || {};
+      if(snap.dtIni) state.dtIni = snap.dtIni;
+      if(snap.dtFim) state.dtFim = snap.dtFim;
+      if(Array.isArray(snap.packIds) && snap.packIds.length) state.packIds = snap.packIds.slice();
+      if(typeof snap.obs === "string") state.obs = snap.obs;
+      if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
+      if(snap.premissas && typeof snap.premissas === "object") state.premissas = normalizePremissas(snap.premissas);
+
+      if(!state.packIds || state.packIds.length === 0){
+        const fromRes = reservas
+          .filter(r => r.fap === fapVal)
+          .map(r => r.packId)
+          .filter(Boolean);
+        state.packIds = Array.from(new Set(fromRes));
+      }
+
+      state.searched = false;
+      togglePacksVisibility();
+      toggleStepsByPacks();
+      refreshPreview();
+      computeEligible();
+
+      applyStateToUI();
+      renderStepsP1();
+      try{ syncP2(); }catch(e){}
+      renderResumo();
+      renderAgenda();
+      scheduleSave();
+    }
+
     elFap.addEventListener("input", () => {
       pendingFap = elFap.value.trim();
     });
@@ -513,36 +563,7 @@ function toggleStepsByPacks(){
           return;
         }
 
-        applyFapSelection(fapVal);
-
-        const snap = perFapData[fapVal] || {};
-        if(snap.dtIni) state.dtIni = snap.dtIni;
-        if(snap.dtFim) state.dtFim = snap.dtFim;
-        if(Array.isArray(snap.packIds) && snap.packIds.length) state.packIds = snap.packIds.slice();
-        if(typeof snap.obs === "string") state.obs = snap.obs;
-        if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
-        if(snap.premissas && typeof snap.premissas === "object") state.premissas = normalizePremissas(snap.premissas);
-
-        if(!state.packIds || state.packIds.length === 0){
-          const fromRes = reservas
-            .filter(r => r.fap === fapVal)
-            .map(r => r.packId)
-            .filter(Boolean);
-          state.packIds = Array.from(new Set(fromRes));
-        }
-
-        state.searched = false;
-        togglePacksVisibility();
-        toggleStepsByPacks();
-        refreshPreview();
-        computeEligible();
-
-        applyStateToUI();
-        renderStepsP1();
-        try{ syncP2(); }catch(e){}
-        renderResumo();
-        renderAgenda();
-        scheduleSave();
+        loadProjectByFap(fapVal);
       });
     }
     elIni.addEventListener("change", () => { state.dtIni = elIni.value; state.searched = false; togglePacksVisibility(); refreshPreview(); });
@@ -601,7 +622,8 @@ function renderStepsP1(){
         return;
       }
 
-      etapasPadrao.forEach((s, i) => {
+      const etapasProjeto = getEtapasProjetoAtual();
+      etapasProjeto.forEach((s, i) => {
         const div = document.createElement("div");
         div.className = "step";
         div.innerHTML = `<div><b>${i+1}. ${s}</b><div class="muted">Etapa padrão</div></div><span class="badge metodologia">Metodologia</span>${badgeReservaEtapaHTML(s)}`;
@@ -696,7 +718,8 @@ function renderStepsP1(){
       const box = document.getElementById("p2Steps");
       box.innerHTML = "";
       if(state.packIds.length){
-        etapasPadrao.forEach((s, i) => {
+        const etapasProjeto = getEtapasProjetoAtual();
+        etapasProjeto.forEach((s, i) => {
           const div = document.createElement("div");
           div.className = "step";
           div.innerHTML = `<div><b>${i+1}. ${s}</b><div class="muted">Etapa padrão</div></div><span class="badge metodologia">Metodologia</span>${badgeReservaEtapaHTML(s)}`;
@@ -715,7 +738,7 @@ function renderStepsP1(){
 
       const sel = document.getElementById("mEtapa");
       sel.innerHTML = `<option value="">Selecione...</option>`;
-      etapasPadrao.forEach(s => {
+      getEtapasProjetoAtual().forEach(s => {
         const opt = document.createElement("option");
         opt.value = s;
         opt.textContent = s;
@@ -2453,7 +2476,7 @@ function confirmSwap(){
         closeReprogramChoice(false);
         if(fapVal){
           openReprogramModal(fapVal, () => {
-            applyFapSelection(fapVal);
+            loadProjectByFap(fapVal);
             goto("p1");
             document.getElementById("fap")?.focus();
           }, prev);
@@ -2517,10 +2540,11 @@ if(cbtn){
         const fap = reprogramCtx.fap || state.fap;
         reprogramReasonsByFap[fap] = { reason, detail, whenISO: nowISO() };
         scheduleSave();
+        const onConfirm = reprogramCtx.onConfirm;
         reprogramCtx.confirmed = true;
         closeReprogramModal();
-        if(typeof reprogramCtx.onConfirm === "function"){
-          reprogramCtx.onConfirm();
+        if(typeof onConfirm === "function"){
+          onConfirm();
         }
         applyEditLockUI();
       }
