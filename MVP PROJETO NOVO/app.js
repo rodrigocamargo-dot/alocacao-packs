@@ -785,12 +785,14 @@ function renderStepsP1(){
 
       list.forEach(c => {
         const tr = document.createElement("tr");
-
         const tdName = document.createElement("td");
-        tdName.innerHTML = `
-          <div class="name">${c.nome}</div>
-          <div class="sub">N\u00edvel de profici\u00eancia: <b style="color:#e5e7eb">${c.nivel}</b></div>
-        `;
+        const vinc = vinculoFromSub(c.sub);
+        const recursoTipo = vinc === "CLT"
+          ? "Recurso Sankhya"
+          : (vinc === "PJ" ? "Recurso Homologado" : "Recurso BP");
+        tdName.innerHTML =           `<div class="name">${c.nome}</div>
+          <div class="sub">${recursoTipo}</div>
+          <div class="sub">N\u00edvel de profici\u00eancia: <b style="color:#e5e7eb">${c.nivel}</b></div>`;
         tr.appendChild(tdName);
 
         currentDays.forEach((d, dayIndex) => {
@@ -1016,7 +1018,7 @@ function getSlotStatusLR(codusu, iso, turno, baseLR){
         const needJust = (vSel === "PJ" || vSel === "BP");
         const just = (document.getElementById("mJustPJ")?.value || "").trim();
         if(needJust && !just){
-          alert("Justificativa obrigatória: informe o motivo da escolha do TERCEIRO ou BP.");
+          alert("Justificativa obrigatoria: informe o motivo da escolha do HOMOLOGADO ou BP.");
           return;
         }
         let ok = 0, skipR = 0;
@@ -1106,7 +1108,7 @@ const byId = Object.fromEntries(consultoresBase.map(c => [c.codusu, c]));
       const just = (document.getElementById("mJustPJ")?.value || "").trim();
 
       if(needJust && !just){
-        alert("Justificativa obrigatória: informe o motivo da escolha do TERCEIRO ou BP.");
+        alert("Justificativa obrigatoria: informe o motivo da escolha do HOMOLOGADO ou BP.");
         return;
       }
 
@@ -1349,10 +1351,12 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
       rows.forEach(r => {
         const c = byId[r.codusu];
         const nome = c?.nome || r.codusu;
-        const nivel = c?.nivel ? ` • ${c.nivel}` : "";
+        const nivel = c?.nivel ? ` | ${c.nivel}` : "";
         const vincRaw = c ? vinculoFromSub(c.sub) : "";
-        const vinc = vincRaw ? ` • ${vincRaw === "PJ" ? "TERCEIRO" : vincRaw}` : "";
-        const packNome = packs[r.packId]?.nome || r.packId || "—";
+        const vinc = vincRaw
+          ? ` | ${vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw)}`
+          : "";
+        const packNome = packs[r.packId]?.nome || r.packId || "-";
         const mod = (r.modalidade && r.modalidade !== "—") ? r.modalidade : "—";
 
         const tr = document.createElement("tr");
