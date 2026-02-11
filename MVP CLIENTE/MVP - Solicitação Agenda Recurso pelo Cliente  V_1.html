@@ -623,7 +623,7 @@
         <div class="tab" data-tab="gestao">Parceiros Homologados</div>
         <div class="tab" data-tab="terceiros">Cadastro Recursos Homologados</div>
         <div class="tab" data-tab="clt-disponibilizar">Disponibilizar Recurso Sankhya para Base</div>
-        <div class="tab" data-tab="valor-hora">Valor hora</div>
+        <div class="tab" data-tab="valor-hora">Valor hora Vendida</div>
       </div>
     </div>
   </div>
@@ -720,6 +720,7 @@
                 <option>5382 Folha - Pack 3 (Gestão Pessoas +)</option>
                 <option>5383 Folha - Pack 4 (Pessoas + App)</option>
                 <option>5540 Folha - Pack 8</option>
+                <option>BP</option>
               </select>
             </div>
 
@@ -745,6 +746,8 @@
                 <select id="inFiltroTipo">
                   <option value="TERCEIRO">Homologado</option>
                   <option value="TERCEIRO_CLT">Homologado + Recursos Sankhya</option>
+                  <option value="SANKHYA">Recursos Sankhya</option>
+                  <option value="BP">BP (Teste)</option>
                 </select>
               </div>
               <div>
@@ -864,8 +867,27 @@
             </div>
 
             <div style="margin-top:10px">
-              <label>Valor Hora Negociado (Compra)</label>
-              <input id="hValorHora" placeholder="R$ 0,00" />
+              <label>Valor Hora por Proficiência (nome reduzido)</label>
+              <div class="row" style="margin-top:6px">
+                <div>
+                  <label>Executor</label>
+                  <input id="hValorHoraExecutor" placeholder="R$ 0,00" />
+                </div>
+                <div>
+                  <label>Autônomo</label>
+                  <input id="hValorHoraAutonomo" placeholder="R$ 0,00" />
+                </div>
+              </div>
+              <div class="row" style="margin-top:6px">
+                <div>
+                  <label>Proficiente</label>
+                  <input id="hValorHoraProficiente" placeholder="R$ 0,00" />
+                </div>
+                <div>
+                  <label>Referencia</label>
+                  <input id="hValorHoraReferencia" placeholder="R$ 0,00" />
+                </div>
+              </div>
             </div>
 
             <div style="margin-top:10px">
@@ -908,7 +930,7 @@
       <th>Parceiro</th>
       <th>Nº Recursos</th>
       <th>Tempo (meses)</th>
-      <th>Valor Hora Negociado (R$)</th>
+      <th>Valor Hora por Proficiência (E/A/P/R)</th>
       <th>Início parceria</th>
       <th style="width:120px">Ações</th>
     </tr>
@@ -1281,6 +1303,7 @@
             </div>
             <div class="toolbar" style="margin-top:10px">
               <div class="chip">Proficiências: <span id="kValorHoraCount">0</span></div>
+              <button class="primary" id="btnSaveValorHoraVendida">Salvar valor hora vendida</button>
             </div>
             <div class="agendaWrap" style="margin-top:12px">
               <table>
@@ -1744,6 +1767,53 @@ const DEFAULT_HOMOLOGADOS = [
   { name: "BHZ", resources: 10, months: 12 },
 ];
 
+const PROF_LABELS = ["Executor","Autônomo","Proficiente","Referencia"];
+
+function emptyValorHoraByProf(){
+  return {
+    Executor: 0,
+    "Autônomo": 0,
+    Proficiente: 0,
+    Referencia: 0
+  };
+}
+
+function normalizeProfShortLabel(label){
+  const raw = String(label || "").trim();
+  if(!raw || raw === "—") return "";
+  const clear = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if(clear.startsWith("exec")) return "Executor";
+  if(clear.startsWith("auto")) return "Autônomo";
+  if(clear.startsWith("prof")) return "Proficiente";
+  if(clear.startsWith("ref")) return "Referencia";
+  return raw;
+}
+
+function buildPartnerRateMap(raw, legacySingleValue = 0){
+  const map = emptyValorHoraByProf();
+  const source = raw && typeof raw === "object" ? raw : {};
+  Object.entries(source).forEach(([k, v]) => {
+    const short = normalizeProfShortLabel(shortNivelLabel(String(k || "")));
+    if(PROF_LABELS.includes(short)){
+      map[short] = Number(v) || 0;
+    }
+  });
+  const fallback = Number(legacySingleValue) || 0;
+  if(fallback > 0 && PROF_LABELS.every(x => (Number(map[x]) || 0) <= 0)){
+    PROF_LABELS.forEach(x => { map[x] = fallback; });
+  }
+  return map;
+}
+
+function partnerRateSummary(valorHoraByProf){
+  const map = buildPartnerRateMap(valorHoraByProf);
+  const ex = map.Executor > 0 ? formatBRL(map.Executor) : "—";
+  const au = map["Autônomo"] > 0 ? formatBRL(map["Autônomo"]) : "—";
+  const pr = map.Proficiente > 0 ? formatBRL(map.Proficiente) : "—";
+  const rf = map.Referencia > 0 ? formatBRL(map.Referencia) : "—";
+  return `E: ${ex} | A: ${au} | P: ${pr} | R: ${rf}`;
+}
+
 const DEFAULT_TERCEIROS = [
   {
     empresa: "ALIBERTI CONSULTORIA TECNOLOGICA",
@@ -1780,6 +1850,78 @@ const DEFAULT_TERCEIROS = [
     obs: "",
     packLevels: [
       { pack: "5316 Fiscal - Pack 1 / Livro e SPED Fiscal", nivel: "Proficiente - Possui dominio tecnico em uma área muito particular do sistema, atuando como referencia naquele assunto especifico. Foca mais na configuração, parametrização e solução de problemas tecnicos pontuais dentro da sua especialidade, seguindo as diretrizes do projeto." }
+    ]
+  },
+  {
+    empresa: "BP",
+    codigo: "90003",
+    nome: "Recurso BP Curitiba",
+    funcao: "Consultor BP",
+    senioridade: "Pleno",
+    modalidade: "PJ",
+    email: "bp.curitiba@bp.com",
+    telefone: "(41) 98888-0003",
+    disponivel: "",
+    carga: 40,
+    presencial: true,
+    filialSlim: "Filial Curitiba",
+    obs: "Recurso de teste BP",
+    packLevels: [
+      { pack: "5309 Caixas e Bancos - Pack 1", nivel: "Executor - Executa tarefas mais simples e rotineiras, como levantamento inicial de dados e auxilio em treinamento, seguindo processos definidos. Requer supervisão." }
+    ]
+  },
+  {
+    empresa: "BP",
+    codigo: "90004",
+    nome: "Recurso BP Sorocaba",
+    funcao: "Consultor BP",
+    senioridade: "Pleno",
+    modalidade: "PJ",
+    email: "bp.sorocaba@bp.com",
+    telefone: "(15) 98888-0004",
+    disponivel: "",
+    carga: 40,
+    presencial: true,
+    filialSlim: "Filial Sorocaba",
+    obs: "Recurso de teste BP",
+    packLevels: [
+      { pack: "5309 Caixas e Bancos - Pack 1", nivel: "Autônomo - Lida com tarefas mais complexas, como analises detalhadas de processos de negocios, configuração do sistema e suporte a testes. Consegue propor soluções para problemas dentro da sua área de atuação." }
+    ]
+  },
+  {
+    empresa: "BP",
+    codigo: "90005",
+    nome: "FLAVIO.CARVALHO",
+    funcao: "Consultor BP",
+    senioridade: "Pleno",
+    modalidade: "PJ",
+    email: "flavio.carvalho@bp.com",
+    telefone: "(41) 98888-0005",
+    disponivel: "",
+    carga: 40,
+    presencial: true,
+    filialSlim: "Filial Curitiba",
+    obs: "Recurso BP Curitiba cadastrado para teste",
+    packLevels: [
+      { pack: "5309 Caixas e Bancos - Pack 1", nivel: "Executor - Executa tarefas mais simples e rotineiras, como levantamento inicial de dados e auxilio em treinamento, seguindo processos definidos. Requer supervisão." }
+    ]
+  },
+  {
+    empresa: "BP",
+    codigo: "90006",
+    nome: "GUILHERME.FERREIRA",
+    funcao: "Consultor BP",
+    senioridade: "Pleno",
+    modalidade: "PJ",
+    email: "guilherme.ferreira@bp.com",
+    telefone: "(41) 98888-0006",
+    disponivel: "",
+    carga: 40,
+    presencial: true,
+    filialSlim: "Filial Curitiba",
+    obs: "Recurso BP Curitiba cadastrado para teste",
+    packLevels: [
+      { pack: "5309 Caixas e Bancos - Pack 1", nivel: "Autônomo - Lida com tarefas mais complexas, como analises detalhadas de processos de negocios, configuração do sistema e suporte a testes. Consegue propor soluções para problemas dentro da sua área de atuação." }
     ]
   }
 ];
@@ -1882,6 +2024,7 @@ const state = {
     resources: h.resources || 0,
     months: h.months || 0,
     valorHora: Number(h.valorHora) || 0,
+    valorHoraByProf: buildPartnerRateMap(h.valorHoraByProf, Number(h.valorHora) || 0),
     inicio: h.inicio || "",
     orderRank: null
   })),
@@ -2112,6 +2255,7 @@ function normalizeLoaded(data){
       resources: Number(h.resources) || 0,
       months: Number(h.months) || 0,
       valorHora: Number(h.valorHora) || 0,
+      valorHoraByProf: buildPartnerRateMap(h.valorHoraByProf, Number(h.valorHora) || 0),
       inicio: h.inicio || "",
       orderRank: Number.isFinite(h.orderRank) ? h.orderRank : null
     }));
@@ -2324,7 +2468,12 @@ document.addEventListener("input", (e)=>{
     saveState();
     return;
   }
-  if(el.id === "hValorHora"){
+  if([
+    "hValorHoraExecutor",
+    "hValorHoraAutonomo",
+    "hValorHoraProficiente",
+    "hValorHoraReferencia"
+  ].includes(el.id)){
     const value = parseBRL(el.value);
     if(value === null){
       el.value = "";
@@ -2410,9 +2559,12 @@ function getFirstHomologadoByOrder(){
 }
 
 function generateConsultants(dtIni, dtFim, partnerFilter=null){
-  const filtroTipo = $$("inFiltroTipo").value; // TERCEIRO | TERCEIRO_CLT
+  const filtroTipo = $$("inFiltroTipo").value; // TERCEIRO | TERCEIRO_CLT | SANKHYA | BP
   const filtroSen = $$("inFiltroSenioridade").value; // ALL|Executor|Autônomo|Proficiente|Referencia
   const packFilter = $$("inPack")?.value.trim() || "";
+  const isBpFilter = filtroTipo === "BP";
+  const isBpPack = String(packFilter).trim().toUpperCase() === "BP";
+  const isPack5309 = packFilter === "5309 Caixas e Bancos - Pack 1";
   const filialFilter = normalizeFilial($$("inFilial")?.value || "");
   if(state.homologados.length === 0){
     toast("Sem homologados", "Cadastre parceiros homologados para gerar a fila.", "warn", 3000);
@@ -2429,7 +2581,7 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
   const seniorities = ["Junior","Pleno","Senior"];
   const types = ["TERCEIRO","CLT"];
 
-  const count = 10 + Math.floor(Math.random()*4);
+  const count = (isBpFilter || isBpPack ? 18 : 10) + Math.floor(Math.random()*((isBpFilter || isBpPack) ? 6 : 4));
   const consultants = [];
 
   const presencialTerceiros = (filtroTipo === "TERCEIRO" || filtroTipo === "TERCEIRO_CLT")
@@ -2452,6 +2604,7 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     : [];
 
   for(let i=0;i<count;i++){
+    if(filtroTipo === "SANKHYA" || isBpFilter) continue;
     const pool = partnerFilter ? [partnerFilter] : state.homologados;
     const partner = randomFrom(pool);
     const sen = randomFrom(seniorities);
@@ -2501,6 +2654,81 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     });
   }
 
+  if((isBpFilter || isBpPack || isPack5309) && filtroTipo !== "SANKHYA"){
+    const bpPartner = partnerFilter || getFirstHomologadoByOrder() || state.homologados[0];
+    if(isBpFilter){
+      const bpRegistered = state.terceiros.filter(t => String(t.empresa || "").trim().toUpperCase() === "BP");
+      bpRegistered.forEach((t, idx) => {
+        const schedule = windowSlots.map((s, sidx) => {
+          const reserved = Math.random() < (0.2 + Math.random()*0.35);
+          return {
+            index: sidx,
+            key: `${t.id || t.nome || "BP"}|${s.day}|${s.period}`,
+            day: s.day,
+            label: s.label,
+            period: s.period,
+            status: reserved ? "R" : "L"
+          };
+        });
+        const free = schedule.filter(x=>x.status==="L").length;
+        const total = schedule.length || 1;
+        const idlePct = Math.round((free/total) * 100);
+        consultants.push({
+          id: t.id || crypto.randomUUID(),
+          name: t.nome || `Recurso BP ${idx+1}`,
+          seniority: t.senioridade || randomFrom(seniorities),
+          profShort: (getProfShortListFromResource(t, packFilter)[0] || "—"),
+          type: "TERCEIRO",
+          partnerId: bpPartner?.id || null,
+          partnerName: "BP",
+          partnerOrder: -1 - (idx * 0.01),
+          idlePct,
+          score: 1300 - idx,
+          schedule
+        });
+      });
+    } else {
+      const fixedBpNames = [
+        "Recurso BP Curitiba",
+        "Recurso BP Sorocaba",
+        "Recurso BP Recife",
+        "Recurso BP Rio de Janeiro"
+      ];
+      const names = isBpPack ? fixedBpNames : fixedBpNames.slice(0, 2);
+      names.forEach((name, idx) => {
+        const sen = randomFrom(seniorities);
+        const prof = (filtroSen !== "ALL") ? filtroSen : randomFrom(PROF_LABELS);
+        const schedule = windowSlots.map((s, sidx) => {
+          const reserved = Math.random() < 0.15;
+          return {
+            index: sidx,
+            key: `${name}|BP|${s.day}|${s.period}`,
+            day: s.day,
+            label: s.label,
+            period: s.period,
+            status: reserved ? "R" : "L"
+          };
+        });
+        const free = schedule.filter(x=>x.status==="L").length;
+        const total = schedule.length || 1;
+        const idlePct = Math.round((free/total) * 100);
+        consultants.push({
+          id: crypto.randomUUID(),
+          name,
+          seniority: sen,
+          profShort: prof,
+          type: "TERCEIRO",
+          partnerId: bpPartner?.id || null,
+          partnerName: "BP",
+          partnerOrder: (bpPartner?.orderRank ?? Infinity) - 0.1 - (idx * 0.01),
+          idlePct,
+          score: 1200 - idx,
+          schedule
+        });
+      });
+    }
+  }
+
   // ordena por prioridade do parceiro, depois score e slots livres
   consultants.sort((a,b)=>{
     if(a.partnerOrder !== b.partnerOrder) return a.partnerOrder - b.partnerOrder;
@@ -2518,6 +2746,8 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
         const list = getProfShortListFromResource(res, packFilter);
         return list.includes(filtroSen);
       });
+  const includeCltDb = (filtroTipo === "TERCEIRO_CLT" || filtroTipo === "SANKHYA");
+  const cltDbList = includeCltDb ? cltDbFiltered : [];
   const presencialList = presencialTerceiros.map((t, i) => {
     const schedule = windowSlots.map((s, idx) => {
       const reserved = Math.random() < 0.15;
@@ -2548,7 +2778,7 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     };
   });
 
-  return [...cltDbFiltered, ...presencialList, ...consultants];
+  return [...cltDbList, ...presencialList, ...consultants];
 }
 
 function generateCltConsultants(dtIni, dtFim, nameFilter=""){
@@ -2589,7 +2819,7 @@ function generateCltConsultants(dtIni, dtFim, nameFilter=""){
       seniority: sen,
       type: "CLT",
       partnerId: null,
-      partnerName: "CLT",
+      partnerName: "Delivery Center",
       partnerOrder: Infinity,
       idlePct,
       score: 0,
@@ -2639,7 +2869,7 @@ function getCltDbConsultants(dtIni, dtFim, packFilter=""){
         seniority: c.senioridade || "—",
         type: "CLT-DB",
         partnerId: null,
-        partnerName: "CLT",
+        partnerName: "Delivery Center",
         partnerOrder: -1,
         idlePct,
         score: 999,
@@ -2729,6 +2959,14 @@ function buildDaysRange(dtIni, dtFim){
 
       const tdName = document.createElement("td");
       tdName.className = "consultorCell";
+      const consultorNomeExibicao = (
+        String(c.partnerName || "").trim().toUpperCase() === "BP" &&
+        String(c.name || "").trim().toUpperCase() === "RECURSO BP"
+      ) ? "Recurso BP Curitiba" : (c.name || "—");
+      const tipoExibicao = String(c.type || "").startsWith("CLT") ? "RECURSO SANKHYA" : "HOMOLOGADO";
+      const parceiroNomeExibicao = tipoExibicao === "RECURSO SANKHYA"
+        ? "Delivery Center"
+        : (c.partnerName || "—");
       const priorityMsg = (c.type === "CLT-DB" || c.type === "TERCEIRO-PRESENCIAL")
         ? `<div class="sub" style="color:#f59e0b;font-weight:800">Recurso Prioritário</div>`
         : "";
@@ -2741,9 +2979,9 @@ function buildDaysRange(dtIni, dtFim){
       tdName.innerHTML = `
         <div class="meta">
         ${priorityMsg}
-        <div><b>${c.name}</b> <span class="tag">${getConsultorTypeLabel(c)}</span></div>
+        <div><b>${consultorNomeExibicao}</b> <span class="tag">${tipoExibicao}</span></div>
         <div class="sub">Senioridade: <b>${c.seniority}</b> • Ociosidade: <b>${c.idlePct}%</b></div>
-        <div class="sub">Parceiro: <b>${c.partnerName}</b></div>
+        <div class="sub">Parceiro: <b>${parceiroNomeExibicao}</b></div>
         <div class="sub">Proficiência do recurso: <b>${getKnowledgeLabel(c)}</b></div>
         ${cltMsg}
         ${presMsg}
@@ -3231,12 +3469,20 @@ function renderHomologados(){
       const monCell = editMode
         ? `<input type="number" min="0" class="h-edit" data-field="months" data-id="${p.id}" value="${p.months}" style="width:80px" />`
         : `${p.months}`;
+      const rates = buildPartnerRateMap(p.valorHoraByProf, Number(p.valorHora) || 0);
       const vhCell = editMode
-        ? `<input type="text" class="h-edit" data-field="valorHora" data-id="${p.id}" value="${p.valorHora ? formatBRL(p.valorHora) : ""}" placeholder="R$ 0,00" style="width:140px" />`
-        : `${p.valorHora ? formatBRL(p.valorHora) : ""}`;
+        ? `
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:6px">
+            <input type="text" class="h-edit" data-field="valorProf" data-prof="Executor" data-id="${p.id}" value="${rates.Executor ? formatBRL(rates.Executor) : ""}" placeholder="Executor" />
+            <input type="text" class="h-edit" data-field="valorProf" data-prof="Autônomo" data-id="${p.id}" value="${rates["Autônomo"] ? formatBRL(rates["Autônomo"]) : ""}" placeholder="Autônomo" />
+            <input type="text" class="h-edit" data-field="valorProf" data-prof="Proficiente" data-id="${p.id}" value="${rates.Proficiente ? formatBRL(rates.Proficiente) : ""}" placeholder="Proficiente" />
+            <input type="text" class="h-edit" data-field="valorProf" data-prof="Referencia" data-id="${p.id}" value="${rates.Referencia ? formatBRL(rates.Referencia) : ""}" placeholder="Referencia" />
+          </div>`
+        : `${partnerRateSummary(rates)}`;
       const iniCell = editMode
         ? `<input type="date" class="h-edit" data-field="inicio" data-id="${p.id}" value="${p.inicio || ""}" />`
         : `${p.inicio ? fmtDateSafe(p.inicio) : ""}`;
+      const canEdit = isTerceiroHomologado(p);
       tr.innerHTML = `
         <td>
           <input type="number" min="1" class="order-input" data-order-id="${p.id}" value="${p.orderRank ?? ""}" style="width:64px" />
@@ -3249,10 +3495,17 @@ function renderHomologados(){
         <td>${iniCell}</td>
         <td>
           <div class="actions tight" style="margin-top:0">
+            ${canEdit ? `<button class="btn-sm" data-edit="${p.id}">Editar</button>` : ``}
             <button class="btn-sm danger" data-del="${p.id}">Remover</button>
           </div>
         </td>
       `;
+    const editBtn = tr.querySelector("[data-edit]");
+    if(editBtn){
+      editBtn.addEventListener("click", ()=>{
+        loadHomologadoForm(p);
+      });
+    }
     tr.querySelector("[data-del]").addEventListener("click", ()=>{
       state.homologados = state.homologados.filter(x=>x.id!==p.id);
       state.lastOrderCount = Math.max(0, state.homologados.filter(x=>x.orderRank !== null).length);
@@ -3304,13 +3557,16 @@ function renderHomologados(){
           if(field === "resources" || field === "months"){
             const val = Number(input.value);
             target[field] = isNaN(val) ? 0 : val;
-          } else if(field === "valorHora"){
+          } else if(field === "valorProf"){
+            const prof = normalizeProfShortLabel(input.dataset.prof);
+            if(!PROF_LABELS.includes(prof)) return;
+            target.valorHoraByProf = buildPartnerRateMap(target.valorHoraByProf, Number(target.valorHora) || 0);
             const val = parseBRL(input.value);
             if(val === null){
-              target.valorHora = 0;
+              target.valorHoraByProf[prof] = 0;
               input.value = "";
             } else {
-              target.valorHora = val;
+              target.valorHoraByProf[prof] = val;
               input.value = formatBRL(val);
             }
           } else if(field === "inicio"){
@@ -3333,6 +3589,41 @@ function findHomologadoByCode(code){
     const c = (h.code || "").replace(/\s+/g, "").toLowerCase();
     return c && c === norm;
   }) || null;
+}
+
+function isTerceiroHomologado(partner){
+  if(!partner) return false;
+  const codeNorm = String(partner.code || "").replace(/\s+/g, "").toLowerCase();
+  const nameNorm = String(partner.name || "").trim().toLowerCase();
+  const match = state.terceiros.some(t => {
+    const tCode = String(t.codigo || "").replace(/\s+/g, "").toLowerCase();
+    const tName = String(t.empresa || "").trim().toLowerCase();
+    if(codeNorm && tCode && codeNorm === tCode) return true;
+    if(nameNorm && tName && nameNorm === tName) return true;
+    return false;
+  });
+  if(match) return true;
+  if(nameNorm.includes("delivery center")) return false;
+  if(nameNorm === "clt") return false;
+  return true;
+}
+
+function loadHomologadoForm(existing){
+  if(!existing) return;
+  const rates = buildPartnerRateMap(existing.valorHoraByProf, Number(existing.valorHora) || 0);
+  $$("hCodigo").value = existing.code || "";
+  $$("hNome").value = existing.name || "";
+  $$("hRecursos").value = existing.resources ?? 0;
+  $$("hTempo").value = existing.months ?? 0;
+  $$("hValorHoraExecutor").value = rates.Executor ? formatBRL(rates.Executor) : "";
+  $$("hValorHoraAutonomo").value = rates["Autônomo"] ? formatBRL(rates["Autônomo"]) : "";
+  $$("hValorHoraProficiente").value = rates.Proficiente ? formatBRL(rates.Proficiente) : "";
+  $$("hValorHoraReferencia").value = rates.Referencia ? formatBRL(rates.Referencia) : "";
+  $$("hInicio").value = existing.inicio || "";
+  state.editing.homologadoId = existing.id;
+  $$("btnAddHomologado").textContent = "Salvar alterações";
+  const hint = $$("homologadoHint");
+  if(hint) hint.style.display = "";
 }
 
 function generateOrdemFila(){
@@ -3489,8 +3780,6 @@ function shortNivelLabel(nivel){
   return parts[0].trim() || nivel;
 }
 
-const PROF_LABELS = ["Executor","Autônomo","Proficiente","Referencia"];
-
 function getProfShortListFromResource(resource, packFilter=""){
   if(!resource) return [];
   const levels = Array.isArray(resource.packLevels) ? resource.packLevels : [];
@@ -3504,7 +3793,20 @@ function getProfShortListFromResource(resource, packFilter=""){
     .filter(x => x && x !== "—");
 }
 
+function getPartnerRateByProf(partnerName, profShort){
+  const prof = normalizeProfShortLabel(profShort);
+  if(!partnerName || !prof) return 0;
+  const partner = state.homologados.find(h => String(h.name || "").trim().toLowerCase() === String(partnerName || "").trim().toLowerCase());
+  if(!partner) return 0;
+  const rates = buildPartnerRateMap(partner.valorHoraByProf, Number(partner.valorHora) || 0);
+  const value = Number(rates[prof]) || 0;
+  return value > 0 ? value : 0;
+}
+
 function getValorHoraLabel(c){
+  const direct = getPartnerRateByProf(c?.partnerName, c?.profShort);
+  if(direct > 0) return formatBRL(direct);
+
   const packNeed = $$("inPack")?.value.trim() || "";
   let nivel = "";
   if(c.type === "CLT-DB"){
@@ -3529,6 +3831,9 @@ function getValorHoraLabel(c){
 }
 
 function getValorHoraValueFor(packNeed, c){
+  const direct = getPartnerRateByProf(c?.partnerName, c?.profShort);
+  if(direct > 0) return direct;
+
   const packFilter = String(packNeed || "").trim();
   let nivel = "";
   if(c.type === "CLT-DB"){
@@ -3978,6 +4283,7 @@ function resetHomologados(){
     resources: h.resources || 0,
     months: h.months || 0,
     valorHora: Number(h.valorHora) || 0,
+    valorHoraByProf: buildPartnerRateMap(h.valorHoraByProf, Number(h.valorHora) || 0),
     inicio: h.inicio || "",
     orderRank: null
   }));
@@ -4194,6 +4500,24 @@ function renderValorHora(){
     tr.appendChild(tdV);
     tbody.appendChild(tr);
   });
+}
+
+function saveValorHoraVendida(){
+  const rows = Array.from(document.querySelectorAll("#tbodyValorHora input[data-money='valor-hora']"));
+  rows.forEach(input => {
+    const key = input.dataset.pack;
+    if(!key) return;
+    const value = parseBRL(input.value);
+    if(value === null){
+      delete state.valorHora[key];
+      input.value = "";
+      return;
+    }
+    state.valorHora[key] = value;
+    input.value = formatBRL(value);
+  });
+  saveState();
+  toast("Valores salvos", "Valor hora vendida atualizado com sucesso.", "info", 2200);
 }
 
 function renderValidation(){
@@ -4764,24 +5088,22 @@ if(hCodeEl){
     const code = hCodeEl.value.trim();
     const hint = $$("homologadoHint");
     if(!code){
+      state.editing.homologadoId = null;
       if(hint) hint.style.display = "none";
       $$("btnAddHomologado").textContent = "Adicionar Parceiro";
       return;
     }
     const existing = findHomologadoByCode(code);
     if(existing){
-      $$("hNome").value = existing.name || "";
-      $$("hRecursos").value = existing.resources ?? 0;
-      $$("hTempo").value = existing.months ?? 0;
-      $$("hValorHora").value = existing.valorHora ? formatBRL(existing.valorHora) : "";
-      $$("hInicio").value = existing.inicio || "";
-      state.editing.homologadoId = existing.id;
-      $$("btnAddHomologado").textContent = "Salvar alterações";
-      if(hint) hint.style.display = "";
+      loadHomologadoForm(existing);
       state.lastHomologadoWarn = "";
     } else {
       state.editing.homologadoId = null;
       $$("btnAddHomologado").textContent = "Adicionar Parceiro";
+      $$("hValorHoraExecutor").value = "";
+      $$("hValorHoraAutonomo").value = "";
+      $$("hValorHoraProficiente").value = "";
+      $$("hValorHoraReferencia").value = "";
       if(hint) hint.style.display = "none";
       if(code && state.lastHomologadoWarn !== code){
         state.lastHomologadoWarn = code;
@@ -4885,8 +5207,13 @@ $$("btnCancelYes")?.addEventListener("click", confirmCancel);
 $$("btnGerarFila").addEventListener("click", ()=>{
   const v = validateDemandaInputs();
   if(!v.ok){ toast("Campos obrigatórios", v.msg, "warn", 3200); return; }
+  const filtroTipo = $$("inFiltroTipo")?.value || "TERCEIRO";
+  const isBpFilter = filtroTipo === "BP";
   const ordered = getOrderedHomologados();
-  if(ordered.length){
+  if(isBpFilter){
+    state.currentPartnerIndex = 0;
+    state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value);
+  } else if(ordered.length){
     state.currentPartnerIndex = 0;
     const firstPartner = ordered[0];
     state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value, firstPartner);
@@ -4903,7 +5230,11 @@ $$("btnGerarFila").addEventListener("click", ()=>{
   state.priorityChecked = true;
   updatePriorityHint();
   saveState();
-  toast("Fila atualizada", "Consultores do primeiro parceiro na fila.", "info", 2200);
+  if(isBpFilter && state.consultants.length === 0){
+    toast("Sem BP cadastrado", "Cadastre recursos com empresa BP para exibir resultados.", "warn", 2600);
+    return;
+  }
+  toast("Fila atualizada", isBpFilter ? "Todos os recursos BP cadastrados foram carregados." : "Consultores do primeiro parceiro na fila.", "info", 2200);
 });
 
 function proceedNextPartner(partner){
@@ -4917,6 +5248,17 @@ function proceedNextPartner(partner){
 }
 
 $$("btnProximoFila").addEventListener("click", ()=>{
+  const filtroTipo = $$("inFiltroTipo")?.value || "TERCEIRO";
+  if(filtroTipo === "BP"){
+    state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value);
+    state.selected.consultantId = null;
+    state.selected.slotKeys.clear();
+    state.selected.lastIndex = null;
+    renderFila();
+    updatePriorityHint();
+    toast("Sugestões BP", "Nova rodada aleatória de recursos e agendas BP.", "info", 2200);
+    return;
+  }
   const ordered = getOrderedHomologados();
   if(!ordered.length){
     toast("Ordem não definida", "Gere a ordem da fila dos homologados para aplicar a prioridade.", "warn", 2800);
@@ -5081,7 +5423,12 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
   const name = $$("hNome").value.trim();
   const resources = Number($$("hRecursos").value);
   const months = Number($$("hTempo").value);
-  const valorHora = parseBRL($$("hValorHora").value);
+  const valorHoraByProf = buildPartnerRateMap({
+    Executor: parseBRL($$("hValorHoraExecutor").value) || 0,
+    "Autônomo": parseBRL($$("hValorHoraAutonomo").value) || 0,
+    Proficiente: parseBRL($$("hValorHoraProficiente").value) || 0,
+    Referencia: parseBRL($$("hValorHoraReferencia").value) || 0
+  });
   const inicio = $$("hInicio").value;
   if(!name){ toast("Campo obrigatório", "Informe o nome do parceiro homologado.", "warn", 2600); return; }
   const shouldRecalc = confirmRecalcOrdem();
@@ -5093,7 +5440,8 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       target.name = name;
       target.resources = isNaN(resources)?0:resources;
       target.months = isNaN(months)?0:months;
-      target.valorHora = valorHora === null ? 0 : valorHora;
+      target.valorHora = 0;
+      target.valorHoraByProf = valorHoraByProf;
       target.inicio = inicio || "";
     }
     state.editing.homologadoId = null;
@@ -5105,13 +5453,17 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       name,
       resources: isNaN(resources)?0:resources,
       months: isNaN(months)?0:months,
-      valorHora: valorHora === null ? 0 : valorHora,
+      valorHora: 0,
+      valorHoraByProf,
       inicio: inicio || ""
     });
   }
   $$("hCodigo").value="";
   $$("hNome").value="";
-  $$("hValorHora").value="";
+  $$("hValorHoraExecutor").value="";
+  $$("hValorHoraAutonomo").value="";
+  $$("hValorHoraProficiente").value="";
+  $$("hValorHoraReferencia").value="";
   $$("hInicio").value="";
   saveState();
   if(state.lastOrderCount > 0) generateOrdemFila();
@@ -5323,6 +5675,8 @@ $$("btnSaveHomologados").addEventListener("click", ()=>{
   else renderHomologados();
   toast("Alterações salvas", "Parceiros homologados atualizados.", "info", 2200);
 });
+
+$$("btnSaveValorHoraVendida")?.addEventListener("click", saveValorHoraVendida);
 
 $$("btnClearLocal")?.addEventListener("click", ()=>{
   if(!confirm("Isso vai limpar todos os dados locais (reservas, cadastros e configurações). Deseja continuar?")) return;
@@ -6146,3 +6500,4 @@ document.addEventListener("click", (e)=>{
 
 </body>
 </html>
+
