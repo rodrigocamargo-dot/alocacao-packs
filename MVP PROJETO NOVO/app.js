@@ -32,7 +32,7 @@
         packIds: ["5309","5283","5284"]
       },
       "100001": { cliente: "Politintas", gp: "Renata", filial: "Slim BH" },
-      "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberl�ndia" },
+      "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberlândia" },
       "100003": { cliente: "AGC", gp: "Carol", filial: "Slim ES" },
       "31200": {
         cliente: "Labor Engenharia e Tecnologia SA",
@@ -107,7 +107,7 @@
     let perFapData = {}; // fap -> {dtIni, dtFim, packIds, obs, validationComment}
     let resumoRowsCache = [];
 
-    // PersistÃªncia simples (localStorage)
+    // Persistência simples (localStorage)
     const STORAGE_KEY = "locacao-recursos-v1";
 
     function scheduleSave(){
@@ -346,7 +346,7 @@
       const wrap = document.getElementById("packsWrapper");
       if(!wrap) return;
 
-      const show = !!state.fap; // ✅ igual comportamento da v5: só depende do FAP
+      const show = !!state.fap; // âœ… igual comportamento da v5: só depende do FAP
       wrap.style.display = show ? "block" : "none";
 
       // Se limpou FAP, resetar packs/etapas
@@ -383,7 +383,7 @@ function toggleStepsByPacks(){
     const pad = n => String(n).padStart(2,"0");
     function toISODate(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
     function fmtBR(iso){
-      if(!iso) return "—";
+      if(!iso) return "â€”";
       const [y,m,d]=iso.split("-");
       return `${d}/${m}/${y}`;
     }
@@ -445,8 +445,8 @@ function toggleStepsByPacks(){
 
 
     function packsLabel(ids){
-      if(!ids || !ids.length) return "—";
-      return ids.map(pid => packs[pid]?.nome || pid).join(" • ");
+      if(!ids || !ids.length) return "â€”";
+      return ids.map(pid => packs[pid]?.nome || pid).join(" â€¢ ");
     }
 
     // Navegação
@@ -592,7 +592,7 @@ function renderStepsP1(){
 
       if(!state.packIds.length){
         box.innerHTML = `<div class="muted">Selecione pelo menos 1 pack para carregar as etapas padrão.</div>`;
-        preview.innerHTML = `<div class="muted">—</div>`;
+        preview.innerHTML = `<div class="muted">â€”</div>`;
         return;
       }
 
@@ -610,13 +610,13 @@ function renderStepsP1(){
     }
 
     function refreshPreview(){
-      document.getElementById("kpiFap").textContent = state.fap || "—";
-      const per = (state.dtIni && state.dtFim) ? `${fmtBR(state.dtIni)} → ${fmtBR(state.dtFim)}` : "—";
+      document.getElementById("kpiFap").textContent = state.fap || "â€”";
+      const per = (state.dtIni && state.dtFim) ? `${fmtBR(state.dtIni)} â†’ ${fmtBR(state.dtFim)}` : "â€”";
       document.getElementById("kpiPeriodo").textContent = per;
       document.getElementById("kpiPacks").textContent = packsLabel(state.packIds);
-      const elCli = document.getElementById("kpiCliente"); if(elCli) elCli.textContent = state.cliente || "—";
-      const elGP = document.getElementById("kpiGP"); if(elGP) elGP.textContent = state.gp || "—";
-      const elFil = document.getElementById("kpiFilial"); if(elFil) elFil.textContent = state.filial || "—";
+      const elCli = document.getElementById("kpiCliente"); if(elCli) elCli.textContent = state.cliente || "â€”";
+      const elGP = document.getElementById("kpiGP"); if(elGP) elGP.textContent = state.gp || "â€”";
+      const elFil = document.getElementById("kpiFilial"); if(elFil) elFil.textContent = state.filial || "â€”";
 
       const ok = !!(state.fap && state.dtIni && state.dtFim && state.packIds.length && state.dtFim >= state.dtIni);
       const pill = document.getElementById("pillStatus");
@@ -678,14 +678,14 @@ function renderStepsP1(){
 
     // Página 2
     function syncP2(){
-      document.getElementById("p2Fap").textContent = state.fap || "—";
+      document.getElementById("p2Fap").textContent = state.fap || "â€”";
       document.getElementById("p2Ini").textContent = fmtBR(state.dtIni);
       document.getElementById("p2Fim").textContent = fmtBR(state.dtFim);
       document.getElementById("p2Packs").textContent = packsLabel(state.packIds);
 
-      const cEl=document.getElementById("p2Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
-      const gEl=document.getElementById("p2GP"); if(gEl) gEl.textContent = state.gp || "—";
-      const fEl=document.getElementById("p2Filial"); if(fEl) fEl.textContent = state.filial || "—";
+      const cEl=document.getElementById("p2Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
+      const gEl=document.getElementById("p2GP"); if(gEl) gEl.textContent = state.gp || "â€”";
+      const fEl=document.getElementById("p2Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
 
 
       const box = document.getElementById("p2Steps");
@@ -760,10 +760,19 @@ function renderStepsP1(){
       return list;
     }
 
+    function senioridadeFromNivel(nivel){
+      const n = (nivel || "").toLowerCase();
+      if(n.includes("refer")) return "Senior";
+      if(n.includes("profic")) return "Pleno";
+      if(n.includes("auton")) return "Pleno";
+      if(n.includes("execut")) return "Junior";
+      return "—";
+    }
+
     function renderAgenda(){
       if(!validatePedido(false)){
         document.getElementById("pillCount").textContent = `0 consultores`;
-        document.getElementById("theadRow").innerHTML = `<th>NOME</th>`;
+        document.getElementById("theadRow").innerHTML = `<th>Consultor</th>`;
         document.getElementById("tbody").innerHTML = "";
         return;
       }
@@ -771,7 +780,7 @@ function renderStepsP1(){
       currentDays = buildDaysRange(state.dtIni, state.dtFim);
 
       const head = document.getElementById("theadRow");
-      head.innerHTML = `<th>NOME</th>`;
+      head.innerHTML = `<th>Consultor</th>`;
       currentDays.forEach(d => {
         const iso = toISODate(d);
         head.innerHTML += `<th>${iso.slice(8,10)}/${iso.slice(5,7)}</th>`;
@@ -787,12 +796,14 @@ function renderStepsP1(){
         const tr = document.createElement("tr");
         const tdName = document.createElement("td");
         const vinc = vinculoFromSub(c.sub);
-        const recursoTipo = vinc === "CLT"
-          ? "Recurso Sankhya"
-          : (vinc === "PJ" ? "Recurso Homologado" : "Recurso BP");
-        tdName.innerHTML =           `<div class="name">${c.nome}</div>
-          <div class="sub">${recursoTipo}</div>
-          <div class="sub">N\u00edvel de profici\u00eancia: <b style="color:#e5e7eb">${c.nivel}</b></div>`;
+        const recursoTipo = vinc === "CLT" ? "Recurso Sankhya" : (vinc === "PJ" ? "Homologado" : "BP");
+        const senioridade = senioridadeFromNivel(c.nivel);
+        const disponibilidade = `${Math.round(periodAvailabilityPct(c.codusu) * 100)}% livre`;
+        const parceiro = vinc === "CLT" ? "Delivery Center" : ((c.sub || "").trim() || "—");
+        tdName.innerHTML = `<div class="name">${c.nome} <span class="sub">• ${recursoTipo}</span></div>
+          <div class="sub">Senioridade: <b style="color:#e5e7eb">${senioridade}</b> • Disponibilidade agenda: <b style="color:#e5e7eb">${disponibilidade}</b></div>
+          <div class="sub">Parceiro: <b style="color:#e5e7eb">${parceiro}</b></div>
+          <div class="sub">Proficiência do Recurso: <b style="color:#e5e7eb">${c.nivel || "—"}</b></div>`;
         tr.appendChild(tdName);
 
         currentDays.forEach((d, dayIndex) => {
@@ -822,9 +833,9 @@ function renderStepsP1(){
           const status = [...chip.classList].find(x => ["L","R","X"].includes(x));
           if(status !== "L"){
             if(status === "X"){
-              alert("Este slot esta bloqueado pelas premissas selecionadas.");
+              alert("Este slot está bloqueado pelas premissas selecionadas.");
             }else{
-              alert("Este slot ja esta reservado (R).");
+              alert("Este slot já está reservado (R).");
             }
             return;
           }
@@ -1213,8 +1224,8 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
             </style>
           </head>
           <body>
-            <h2>Resumo das Agendas - FAP ${state.fap || "—"}</h2>
-            <div class="meta"><b>Projeto:</b> ${state.cliente || "—"} &nbsp;•&nbsp; <b>Gerente de Projeto:</b> ${state.gp || "—"} &nbsp;•&nbsp; <b>Gerado em:</b> ${genAt}</div>
+            <h2>Resumo das Agendas - FAP ${state.fap || "â€”"}</h2>
+            <div class="meta"><b>Projeto:</b> ${state.cliente || "â€”"} &nbsp;â€¢&nbsp; <b>Gerente de Projeto:</b> ${state.gp || "â€”"} &nbsp;â€¢&nbsp; <b>Gerado em:</b> ${genAt}</div>
             <table>
               <thead>
                 <tr>
@@ -1238,13 +1249,13 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
     }
 
     function renderResumo(){
-      document.getElementById("kpi3Fap").textContent = state.fap || "—";
+      document.getElementById("kpi3Fap").textContent = state.fap || "â€”";
       document.getElementById("kpi3Packs").textContent = packsLabel(state.packIds);
-      const cEl=document.getElementById("kpi3Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
-      const gEl=document.getElementById("kpi3GP"); if(gEl) gEl.textContent = state.gp || "—";
-      const fEl=document.getElementById("kpi3Filial"); if(fEl) fEl.textContent = state.filial || "—";
-      const elL = document.getElementById("kpi3Lider"); if(elL) elL.textContent = state.lider || "—";
-      const elPMO = document.getElementById("kpi3GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "—";
+      const cEl=document.getElementById("kpi3Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
+      const gEl=document.getElementById("kpi3GP"); if(gEl) gEl.textContent = state.gp || "â€”";
+      const fEl=document.getElementById("kpi3Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
+      const elL = document.getElementById("kpi3Lider"); if(elL) elL.textContent = state.lider || "â€”";
+      const elPMO = document.getElementById("kpi3GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "â€”";
 
       const list = reservas
         .filter(r => r.fap===state.fap)
@@ -1277,7 +1288,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
 
       // --- Agrupar por Etapa + Pack + Consultor + Modalidade e consolidar datas consecutivas ---
       const groups = new Map(); // key -> array reservas
-      const keyOf = (r) => `${r.etapa||"—"}|${r.packId||"—"}|${r.codusu||"—"}|${(r.modalidade||"—")}`;
+      const keyOf = (r) => `${r.etapa||"â€”"}|${r.packId||"â€”"}|${r.codusu||"â€”"}|${(r.modalidade||"â€”")}`;
       list.forEach(r => {
         const k = keyOf(r);
         if(!groups.has(k)) groups.set(k, []);
@@ -1297,7 +1308,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
         if(hasM && hasT) return "Dia todo";
         if(hasM) return "Manhã";
         if(hasT) return "Tarde";
-        return "—";
+        return "â€”";
       }
 
       // Linhas finais
@@ -1357,27 +1368,27 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
           ? ` | ${vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw)}`
           : "";
         const packNome = packs[r.packId]?.nome || r.packId || "-";
-        const mod = (r.modalidade && r.modalidade !== "—") ? r.modalidade : "—";
+        const mod = (r.modalidade && r.modalidade !== "â€”") ? r.modalidade : "â€”";
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td style="text-align:left">${r.etapa || "—"}</td>
+          <td style="text-align:left">${r.etapa || "â€”"}</td>
           <td style="text-align:left">${packNome}</td>
           <td style="text-align:left"><b>${nome}</b><span class="muted">${nivel}${vinc}</span></td>
           <td>${fmtBR(r.dtIni)}</td>
           <td>${fmtBR(r.dtFim)}</td>
-          <td>${r.periodo || "—"}</td>
+          <td>${r.periodo || "â€”"}</td>
           <td>${mod}</td>
         `;
         tbody.appendChild(tr);
 
         exportRows.push({
-          etapa: r.etapa || "—",
+          etapa: r.etapa || "â€”",
           pack: packNome,
           consultor: `${nome}${nivel}${vinc}`,
           dtIni: fmtBR(r.dtIni),
           dtFim: fmtBR(r.dtFim),
-          periodo: r.periodo || "—",
+          periodo: r.periodo || "â€”",
           modalidade: mod
         });
       });
@@ -1392,7 +1403,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
       if(!state.fap){
         const fapFromInput = (document.getElementById("fap")?.value || "").trim();
         const fapFromP2 = (document.getElementById("p2Fap")?.textContent || "").trim();
-        state.fap = fapFromInput || (fapFromP2 !== "—" ? fapFromP2 : "");
+        state.fap = fapFromInput || (fapFromP2 !== "â€”" ? fapFromP2 : "");
       }
       if(!state.fap){
         alert("Informe a FAP antes de enviar para validação.");
@@ -1445,7 +1456,7 @@ function guardP5(){
         const c = byId[r.codusu];
         const nome = c?.nome || r.codusu;
         const turno = r.turno === "M" ? "Manhã" : "Tarde";
-        const packNome = packs[r.packId]?.nome || r.packId || "—";
+        const packNome = packs[r.packId]?.nome || r.packId || "â€”";
         const vincRaw = vinculoFromSub(c?.sub);
         const vincLabel = vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw);
         const warnClt = (vincRaw === "PJ" && cltAvail)
@@ -1457,8 +1468,8 @@ function guardP5(){
 
         wrap.innerHTML = `
           <div>
-            <b>${nome} • ${vincLabel}</b>
-            <div>${fmtBR(r.dataISO)} • ${turno} • Pack: ${packNome}${r.modalidade ? " • " + r.modalidade : ""}</div>
+            <b>${nome} â€¢ ${vincLabel}</b>
+            <div>${fmtBR(r.dataISO)} â€¢ ${turno} â€¢ Pack: ${packNome}${r.modalidade ? " â€¢ " + r.modalidade : ""}</div>
             ${warnClt}
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end">
@@ -1541,14 +1552,14 @@ if(btnGpReject){
     if(!state.fap){ alert("Informe a FAP."); return; }
     const stNow = validationStatusByFap[state.fap] || "Pendente";
     if(stNow !== "Aguardando Aceite do Gerente de Projeto"){
-      alert("Este cronograma n�o est� aguardando aceite do Gerente de Projeto.");
+      alert("Este cronograma não está aguardando aceite do Gerente de Projeto.");
       return;
     }
-    // Solicita ajustes ao L�der da Torre
+    // Solicita ajustes ao Líder da Torre
     acceptedChangesByFap[state.fap] = false;
-    validationStatusByFap[state.fap] = "Em ajustes pelo L�der da Torre";
+    validationStatusByFap[state.fap] = "Em ajustes pelo Líder da Torre";
     scheduleSave();
-    alert("Solicita��o de ajustes enviada ao L�der da Torre. Retornando para a Etapa 4.");
+    alert("Solicitação de ajustes enviada ao Líder da Torre. Retornando para a Etapa 4.");
     goto("p4");
   });
 }
@@ -1587,11 +1598,11 @@ if(btnReprogramStart){
   });
 }
 function renderValidated(){
-      document.getElementById("kpi5Fap").textContent = state.fap || "—";
+      document.getElementById("kpi5Fap").textContent = state.fap || "â€”";
       document.getElementById("kpi5Packs").textContent = packsLabel(state.packIds);
-      const cEl=document.getElementById("kpi5Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
-      const gEl=document.getElementById("kpi5GP"); if(gEl) gEl.textContent = state.gp || "—";
-      const fEl=document.getElementById("kpi5Filial"); if(fEl) fEl.textContent = state.filial || "—";
+      const cEl=document.getElementById("kpi5Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
+      const gEl=document.getElementById("kpi5GP"); if(gEl) gEl.textContent = state.gp || "â€”";
+      const fEl=document.getElementById("kpi5Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
       const st = validationStatusByFap[state.fap] || "Pendente";
       document.getElementById("kpi5Status").textContent = st;
       const p5Comment = document.getElementById("p5ValidationComment");
@@ -1632,7 +1643,7 @@ if(!hasChanges){
         <b>Em validação do Líder da Torre</b>
         <div>O cronograma está em análise. Nenhuma decisão final foi registrada ainda.</div>
       </div>
-      <span class="tag">EM VALIDAÇÃO</span>
+      <span class="tag">EM VALIDAÇÃƒO</span>
     `;
     box.appendChild(div);
     return;
@@ -1719,9 +1730,9 @@ function updateClientValidationUI(stNow){
         div.innerHTML = `
           <div>
             <b>${l.action}</b>
-            <div>${when} • ${l.detail}</div>
+            <div>${when} â€¢ ${l.detail}</div>
           </div>
-          <span class="tag">ALTERAÇÃO</span>
+          <span class="tag">ALTERAÇÃƒO</span>
         `;
         box.appendChild(div);
       });
@@ -1790,12 +1801,12 @@ if(btnEnviar){
       if(!box) return;
 
       // Contexto do pedido (FAP/Cliente/GP/Filial)
-      const elFap = document.getElementById("p4Fap"); if(elFap) elFap.textContent = state.fap || "—";
-      const elCli = document.getElementById("p4Cliente"); if(elCli) elCli.textContent = state.cliente || "—";
-      const elGP  = document.getElementById("p4GP"); if(elGP) elGP.textContent = state.gp || "—";
-      const elFil = document.getElementById("p4Filial"); if(elFil) elFil.textContent = state.filial || "—";
-      const elL = document.getElementById("p4Lider"); if(elL) elL.textContent = state.lider || "—";
-      const elPMO = document.getElementById("p4GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "—";
+      const elFap = document.getElementById("p4Fap"); if(elFap) elFap.textContent = state.fap || "â€”";
+      const elCli = document.getElementById("p4Cliente"); if(elCli) elCli.textContent = state.cliente || "â€”";
+      const elGP  = document.getElementById("p4GP"); if(elGP) elGP.textContent = state.gp || "â€”";
+      const elFil = document.getElementById("p4Filial"); if(elFil) elFil.textContent = state.filial || "â€”";
+      const elL = document.getElementById("p4Lider"); if(elL) elL.textContent = state.lider || "â€”";
+      const elPMO = document.getElementById("p4GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "â€”";
       const valComment = document.getElementById("p4ValidationComment");
       if(valComment) valComment.value = state.validationComment || "";
       const obsWrap = document.getElementById("p4ObsWrap");
@@ -1863,8 +1874,8 @@ if(btnEnviar){
         const vLabel = v === "PJ" ? "HOMOLOGADO" : "BP";
         div.innerHTML = `
           <div>
-            <b>${x.nome} • ${vLabel}</b>
-            <div>${fmtBR(x.dataISO)} • ${turno} • Pack: ${packNome}${x.modalidade ? " • "+x.modalidade : ""}</div>
+            <b>${x.nome} â€¢ ${vLabel}</b>
+            <div>${fmtBR(x.dataISO)} â€¢ ${turno} â€¢ Pack: ${packNome}${x.modalidade ? " â€¢ "+x.modalidade : ""}</div>
             <div style="margin-top:4px; color:#fde68a"><b>Justificativa:</b> ${x.just}</div>
           </div>
           <span class="tag">ALERTA</span>
@@ -1881,7 +1892,7 @@ if(btnEnviar){
         if(!state.fap) return;
         acceptedChangesByFap[state.fap] = true;
         validationStatusByFap[state.fap] = "Concluído - Alocação de recurso";
-        alert("Alterações aceitas. Seu cronograma foi validado Pelo Líder da torre e esta pronto para ser validado cliente.");
+      alert("Alteração registrada (log registrado).");
         renderValidated();
       });
     }
@@ -1931,7 +1942,7 @@ if(btnEnviar){
     }
     initApp();
   
-    /* ===== Etapa 4 – Troca de consultor com verificação de recursos (modal) ===== */
+    /* ===== Etapa 4 â€“ Troca de consultor com verificação de recursos (modal) ===== */
 let swapCtx = { open:false, reserva:null, selected:null, needJust:false, dateISO:null, turno:null };
 let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed:false };
 
@@ -1947,10 +1958,10 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       // Contexto
       const packNome = (packs[reserva.packId]?.nome || reserva.packId);
       const turno = reserva.turno === "M" ? "Manhã" : (reserva.turno === "T" ? "Tarde" : reserva.turno);
-      $("#swapContext").innerHTML = `<b>FAP ${reserva.fap}</b> • Atual: ${fmtBR(reserva.dataISO)} • ${turno} • Pack: <b>${packNome}</b>`;
+      $("#swapContext").innerHTML = `<b>FAP ${reserva.fap}</b> â€¢ Atual: ${fmtBR(reserva.dataISO)} â€¢ ${turno} â€¢ Pack: <b>${packNome}</b>`;
 
       // Badges
-      $("#swapBadgeSlot").textContent = `Slot atual: ${fmtBR(reserva.dataISO)} • ${turno}`;
+      $("#swapBadgeSlot").textContent = `Slot atual: ${fmtBR(reserva.dataISO)} â€¢ ${turno}`;
       const cltAvail = hasCltAvailabilityInPeriod();
       $("#swapBadgeRule").textContent = `Regra Homologados/Recurso Sankhya: ${cltAvail ? "ha Recurso Sankhya disponivel no periodo" : "sem Recurso Sankhya disponivel no periodo"}`;
 
@@ -2077,7 +2088,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
     }
 
     function renderPersonMini(c, reserva, isCurrent=false, slotDateISO=null, slotTurno=null, ignoreReserva=null){
-      if(!c) return `<div class="muted">—</div>`;      const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
+      if(!c) return `<div class="muted">â€”</div>`;      const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
       const checkDate = slotDateISO || reserva.dataISO;
       const checkTurno = slotTurno || reserva.turno;
       const slotFree = isSlotFreeConsideringSwap(c.codusu, checkDate, checkTurno, ignoreReserva);
@@ -2090,7 +2101,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               <span class="chip">${c.codusu}</span>
               ${profChip}
             </div>
-            <div class="muted" style="margin-top:4px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
+            <div class="muted" style="margin-top:4px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "â€”"))}</div>
             <div class="meta" style="margin-top:8px">${badge} <span class="badge">${periodPct}% livre no período</span></div>
           </div>
           ${isCurrent ? `<span class="badge">Atual</span>` : ``}
@@ -2167,15 +2178,15 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
       const r = swapCtx.reserva;
       if(!r) return;
       const { dateISO, turno } = getSwapTargetSlot();
-      const packNome = packs[r.packId]?.nome || r.packId || "—";
+      const packNome = packs[r.packId]?.nome || r.packId || "â€”";
       const curTurno = r.turno === "M" ? "Manhã" : "Tarde";
       const newTurno = turno === "M" ? "Manhã" : "Tarde";
-      const curLabel = `${fmtBR(r.dataISO)} • ${curTurno}`;
-      const newLabel = `${fmtBR(dateISO)} • ${newTurno}`;
-      $("#swapContext").innerHTML = `<b>FAP ${r.fap}</b> • Atual: ${curLabel} • Novo: ${newLabel} • Pack: <b>${packNome}</b>`;
+      const curLabel = `${fmtBR(r.dataISO)} â€¢ ${curTurno}`;
+      const newLabel = `${fmtBR(dateISO)} â€¢ ${newTurno}`;
+      $("#swapContext").innerHTML = `<b>FAP ${r.fap}</b> â€¢ Atual: ${curLabel} â€¢ Novo: ${newLabel} â€¢ Pack: <b>${packNome}</b>`;
       $("#swapBadgeSlot").textContent = (r.dataISO===dateISO && r.turno===turno)
         ? `Slot: ${newLabel}`
-        : `Slot atual: ${curLabel} • Novo: ${newLabel}`;
+        : `Slot atual: ${curLabel} â€¢ Novo: ${newLabel}`;
 
       const atual = consultoresBase.find(c => c.codusu===r.codusu);
       $("#swapCurrentBox").innerHTML = renderPersonMini(atual, r, true, dateISO, turno, r);
@@ -2276,7 +2287,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               ${slotBadge}
               <span class="badge">${pct}% livre no período</span>
             </div>
-            <div class="muted" style="margin-top:6px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
+            <div class="muted" style="margin-top:6px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "â€”"))}</div>
           </div>
           <div class="right">
                         <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">N\u00edvel de profici\u00eancia</span></div>
@@ -2361,7 +2372,7 @@ function confirmSwap(){
       }
 
       if(c.codusu === r.codusu && dateISO === r.dataISO && turno === r.turno){
-        alert("Nenhuma alteraÃ§Ã£o detectada (mesmo consultor, data e turno).");
+        alert("Nenhuma alteração detectada (mesmo consultor, data e turno).");
         return;
       }
 
@@ -2404,17 +2415,17 @@ function confirmSwap(){
       }
       scheduleSave();
 
-      const turnoLabel = turno === "M" ? "ManhÃ£" : "Tarde";
-      const oldTurnoLabel = oldTurno === "M" ? "ManhÃ£" : "Tarde";
+      const turnoLabel = turno === "M" ? "Manhã" : "Tarde";
+      const oldTurnoLabel = oldTurno === "M" ? "Manhã" : "Tarde";
       const actionLabel = (old === c.codusu) ? "Ajuste de data/turno" : "Troca de consultor";
-      const packNomeLog = packs[r.packId]?.nome || r.packId || "â€”";
-      const etapaLog = r.etapa ? ` â€¢ Etapa: ${r.etapa}` : "";
-      const modLog = r.modalidade ? ` â€¢ ${r.modalidade}` : "";
+      const packNomeLog = packs[r.packId]?.nome || r.packId || "—";
+      const etapaLog = r.etapa ? ` • Etapa: ${r.etapa}` : "";
+      const modLog = r.modalidade ? ` • ${r.modalidade}` : "";
       const slotLog = (oldDateISO === dateISO && oldTurno === turno)
         ? `${fmtBR(dateISO)} (${turnoLabel})`
         : `${fmtBR(oldDateISO)} (${oldTurnoLabel}) -> ${fmtBR(dateISO)} (${turnoLabel})`;
-      logLeaderChange(actionLabel, `${oldName} -> ${newName} â€¢ Slot: ${slotLog} â€¢ Pack: ${packNomeLog}${etapaLog}${modLog}`);
-      alert("AlteraÃ§Ã£o registrada (log registrado).");
+      logLeaderChange(actionLabel, `${oldName} -> ${newName} • Slot: ${slotLog} • Pack: ${packNomeLog}${etapaLog}${modLog}`);
+      alert("Alteração registrada (log registrado).");
 
       closeSwapModal();
       renderLeaderResList();
@@ -2472,7 +2483,7 @@ if(cbtn){
       if(rr && $("#swapJustText")){
         const t = $("#swapJustText");
         const reason = rr.getAttribute("data-reason");
-        t.value = (t.value ? (t.value.trim() + " • ") : "") + reason;
+        t.value = (t.value ? (t.value.trim() + " â€¢ ") : "") + reason;
         t.focus();
       }
 
@@ -2650,7 +2661,7 @@ openModal = function(ctx){
 }
 function getModalidade(){
   const r = document.querySelector('input[name="modalidadeAgenda"]:checked');
-  if(!r){ alert('⚠️ Selecione se a agenda é Remota ou Presencial.'); return null; }
+  if(!r){ alert('âš ï¸ Selecione se a agenda é Remota ou Presencial.'); return null; }
   return r.value;
 }
 // patch reserve buttons
