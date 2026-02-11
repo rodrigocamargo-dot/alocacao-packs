@@ -1,4 +1,4 @@
-
+﻿
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
     let packs = {
@@ -34,6 +34,11 @@
       "100001": { cliente: "Politintas", gp: "Renata", filial: "Slim BH" },
       "100002": { cliente: "Atacadista de Fraldas", gp: "Andreia", filial: "Slim Uberlândia" },
       "100003": { cliente: "AGC", gp: "Carol", filial: "Slim ES" },
+      "2020": {
+        cliente: "TRIUNFO SOLUCOES EM ENGENHARIA",
+        gp: "FLAVIO.LEMOS",
+        filial: "SLIM FILIAL BRASIL CENTRAL"
+      },
       "31200": {
         cliente: "Labor Engenharia e Tecnologia SA",
         gp: "Milca Delmonico",
@@ -346,7 +351,7 @@
       const wrap = document.getElementById("packsWrapper");
       if(!wrap) return;
 
-      const show = !!state.fap; // âœ… igual comportamento da v5: só depende do FAP
+      const show = !!state.fap; // ✅ igual comportamento da v5: só depende do FAP
       wrap.style.display = show ? "block" : "none";
 
       // Se limpou FAP, resetar packs/etapas
@@ -383,7 +388,7 @@ function toggleStepsByPacks(){
     const pad = n => String(n).padStart(2,"0");
     function toISODate(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
     function fmtBR(iso){
-      if(!iso) return "â€”";
+      if(!iso) return "—";
       const [y,m,d]=iso.split("-");
       return `${d}/${m}/${y}`;
     }
@@ -445,8 +450,8 @@ function toggleStepsByPacks(){
 
 
     function packsLabel(ids){
-      if(!ids || !ids.length) return "â€”";
-      return ids.map(pid => packs[pid]?.nome || pid).join(" â€¢ ");
+      if(!ids || !ids.length) return "—";
+      return ids.map(pid => packs[pid]?.nome || pid).join(" • ");
     }
 
     // Navegação
@@ -592,7 +597,7 @@ function renderStepsP1(){
 
       if(!state.packIds.length){
         box.innerHTML = `<div class="muted">Selecione pelo menos 1 pack para carregar as etapas padrão.</div>`;
-        preview.innerHTML = `<div class="muted">â€”</div>`;
+        preview.innerHTML = `<div class="muted">—</div>`;
         return;
       }
 
@@ -610,13 +615,13 @@ function renderStepsP1(){
     }
 
     function refreshPreview(){
-      document.getElementById("kpiFap").textContent = state.fap || "â€”";
-      const per = (state.dtIni && state.dtFim) ? `${fmtBR(state.dtIni)} â†’ ${fmtBR(state.dtFim)}` : "â€”";
+      document.getElementById("kpiFap").textContent = state.fap || "—";
+      const per = (state.dtIni && state.dtFim) ? `${fmtBR(state.dtIni)} → ${fmtBR(state.dtFim)}` : "—";
       document.getElementById("kpiPeriodo").textContent = per;
       document.getElementById("kpiPacks").textContent = packsLabel(state.packIds);
-      const elCli = document.getElementById("kpiCliente"); if(elCli) elCli.textContent = state.cliente || "â€”";
-      const elGP = document.getElementById("kpiGP"); if(elGP) elGP.textContent = state.gp || "â€”";
-      const elFil = document.getElementById("kpiFilial"); if(elFil) elFil.textContent = state.filial || "â€”";
+      const elCli = document.getElementById("kpiCliente"); if(elCli) elCli.textContent = state.cliente || "—";
+      const elGP = document.getElementById("kpiGP"); if(elGP) elGP.textContent = state.gp || "—";
+      const elFil = document.getElementById("kpiFilial"); if(elFil) elFil.textContent = state.filial || "—";
 
       const ok = !!(state.fap && state.dtIni && state.dtFim && state.packIds.length && state.dtFim >= state.dtIni);
       const pill = document.getElementById("pillStatus");
@@ -678,14 +683,14 @@ function renderStepsP1(){
 
     // Página 2
     function syncP2(){
-      document.getElementById("p2Fap").textContent = state.fap || "â€”";
+      document.getElementById("p2Fap").textContent = state.fap || "—";
       document.getElementById("p2Ini").textContent = fmtBR(state.dtIni);
       document.getElementById("p2Fim").textContent = fmtBR(state.dtFim);
       document.getElementById("p2Packs").textContent = packsLabel(state.packIds);
 
-      const cEl=document.getElementById("p2Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
-      const gEl=document.getElementById("p2GP"); if(gEl) gEl.textContent = state.gp || "â€”";
-      const fEl=document.getElementById("p2Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
+      const cEl=document.getElementById("p2Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
+      const gEl=document.getElementById("p2GP"); if(gEl) gEl.textContent = state.gp || "—";
+      const fEl=document.getElementById("p2Filial"); if(fEl) fEl.textContent = state.filial || "—";
 
 
       const box = document.getElementById("p2Steps");
@@ -1224,8 +1229,8 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
             </style>
           </head>
           <body>
-            <h2>Resumo das Agendas - FAP ${state.fap || "â€”"}</h2>
-            <div class="meta"><b>Projeto:</b> ${state.cliente || "â€”"} &nbsp;â€¢&nbsp; <b>Gerente de Projeto:</b> ${state.gp || "â€”"} &nbsp;â€¢&nbsp; <b>Gerado em:</b> ${genAt}</div>
+            <h2>Resumo das Agendas - FAP ${state.fap || "—"}</h2>
+            <div class="meta"><b>Projeto:</b> ${state.cliente || "—"} &nbsp;•&nbsp; <b>Gerente de Projeto:</b> ${state.gp || "—"} &nbsp;•&nbsp; <b>Gerado em:</b> ${genAt}</div>
             <table>
               <thead>
                 <tr>
@@ -1249,13 +1254,13 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
     }
 
     function renderResumo(){
-      document.getElementById("kpi3Fap").textContent = state.fap || "â€”";
+      document.getElementById("kpi3Fap").textContent = state.fap || "—";
       document.getElementById("kpi3Packs").textContent = packsLabel(state.packIds);
-      const cEl=document.getElementById("kpi3Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
-      const gEl=document.getElementById("kpi3GP"); if(gEl) gEl.textContent = state.gp || "â€”";
-      const fEl=document.getElementById("kpi3Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
-      const elL = document.getElementById("kpi3Lider"); if(elL) elL.textContent = state.lider || "â€”";
-      const elPMO = document.getElementById("kpi3GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "â€”";
+      const cEl=document.getElementById("kpi3Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
+      const gEl=document.getElementById("kpi3GP"); if(gEl) gEl.textContent = state.gp || "—";
+      const fEl=document.getElementById("kpi3Filial"); if(fEl) fEl.textContent = state.filial || "—";
+      const elL = document.getElementById("kpi3Lider"); if(elL) elL.textContent = state.lider || "—";
+      const elPMO = document.getElementById("kpi3GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "—";
 
       const list = reservas
         .filter(r => r.fap===state.fap)
@@ -1288,7 +1293,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
 
       // --- Agrupar por Etapa + Pack + Consultor + Modalidade e consolidar datas consecutivas ---
       const groups = new Map(); // key -> array reservas
-      const keyOf = (r) => `${r.etapa||"â€”"}|${r.packId||"â€”"}|${r.codusu||"â€”"}|${(r.modalidade||"â€”")}`;
+      const keyOf = (r) => `${r.etapa||"—"}|${r.packId||"—"}|${r.codusu||"—"}|${(r.modalidade||"—")}`;
       list.forEach(r => {
         const k = keyOf(r);
         if(!groups.has(k)) groups.set(k, []);
@@ -1308,7 +1313,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
         if(hasM && hasT) return "Dia todo";
         if(hasM) return "Manhã";
         if(hasT) return "Tarde";
-        return "â€”";
+        return "—";
       }
 
       // Linhas finais
@@ -1368,27 +1373,27 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
           ? ` | ${vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw)}`
           : "";
         const packNome = packs[r.packId]?.nome || r.packId || "-";
-        const mod = (r.modalidade && r.modalidade !== "â€”") ? r.modalidade : "â€”";
+        const mod = (r.modalidade && r.modalidade !== "—") ? r.modalidade : "—";
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td style="text-align:left">${r.etapa || "â€”"}</td>
+          <td style="text-align:left">${r.etapa || "—"}</td>
           <td style="text-align:left">${packNome}</td>
           <td style="text-align:left"><b>${nome}</b><span class="muted">${nivel}${vinc}</span></td>
           <td>${fmtBR(r.dtIni)}</td>
           <td>${fmtBR(r.dtFim)}</td>
-          <td>${r.periodo || "â€”"}</td>
+          <td>${r.periodo || "—"}</td>
           <td>${mod}</td>
         `;
         tbody.appendChild(tr);
 
         exportRows.push({
-          etapa: r.etapa || "â€”",
+          etapa: r.etapa || "—",
           pack: packNome,
           consultor: `${nome}${nivel}${vinc}`,
           dtIni: fmtBR(r.dtIni),
           dtFim: fmtBR(r.dtFim),
-          periodo: r.periodo || "â€”",
+          periodo: r.periodo || "—",
           modalidade: mod
         });
       });
@@ -1403,7 +1408,7 @@ document.getElementById("btnLimpar").addEventListener("click", () => {
       if(!state.fap){
         const fapFromInput = (document.getElementById("fap")?.value || "").trim();
         const fapFromP2 = (document.getElementById("p2Fap")?.textContent || "").trim();
-        state.fap = fapFromInput || (fapFromP2 !== "â€”" ? fapFromP2 : "");
+        state.fap = fapFromInput || (fapFromP2 !== "—" ? fapFromP2 : "");
       }
       if(!state.fap){
         alert("Informe a FAP antes de enviar para validação.");
@@ -1456,7 +1461,7 @@ function guardP5(){
         const c = byId[r.codusu];
         const nome = c?.nome || r.codusu;
         const turno = r.turno === "M" ? "Manhã" : "Tarde";
-        const packNome = packs[r.packId]?.nome || r.packId || "â€”";
+        const packNome = packs[r.packId]?.nome || r.packId || "—";
         const vincRaw = vinculoFromSub(c?.sub);
         const vincLabel = vincRaw === "PJ" ? "HOMOLOGADO" : (vincRaw === "CLT" ? "RECURSO SANKHYA" : vincRaw);
         const warnClt = (vincRaw === "PJ" && cltAvail)
@@ -1468,8 +1473,8 @@ function guardP5(){
 
         wrap.innerHTML = `
           <div>
-            <b>${nome} â€¢ ${vincLabel}</b>
-            <div>${fmtBR(r.dataISO)} â€¢ ${turno} â€¢ Pack: ${packNome}${r.modalidade ? " â€¢ " + r.modalidade : ""}</div>
+            <b>${nome} • ${vincLabel}</b>
+            <div>${fmtBR(r.dataISO)} • ${turno} • Pack: ${packNome}${r.modalidade ? " • " + r.modalidade : ""}</div>
             ${warnClt}
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end">
@@ -1598,11 +1603,11 @@ if(btnReprogramStart){
   });
 }
 function renderValidated(){
-      document.getElementById("kpi5Fap").textContent = state.fap || "â€”";
+      document.getElementById("kpi5Fap").textContent = state.fap || "—";
       document.getElementById("kpi5Packs").textContent = packsLabel(state.packIds);
-      const cEl=document.getElementById("kpi5Cliente"); if(cEl) cEl.textContent = state.cliente || "â€”";
-      const gEl=document.getElementById("kpi5GP"); if(gEl) gEl.textContent = state.gp || "â€”";
-      const fEl=document.getElementById("kpi5Filial"); if(fEl) fEl.textContent = state.filial || "â€”";
+      const cEl=document.getElementById("kpi5Cliente"); if(cEl) cEl.textContent = state.cliente || "—";
+      const gEl=document.getElementById("kpi5GP"); if(gEl) gEl.textContent = state.gp || "—";
+      const fEl=document.getElementById("kpi5Filial"); if(fEl) fEl.textContent = state.filial || "—";
       const st = validationStatusByFap[state.fap] || "Pendente";
       document.getElementById("kpi5Status").textContent = st;
       const p5Comment = document.getElementById("p5ValidationComment");
@@ -1643,7 +1648,7 @@ if(!hasChanges){
         <b>Em validação do Líder da Torre</b>
         <div>O cronograma está em análise. Nenhuma decisão final foi registrada ainda.</div>
       </div>
-      <span class="tag">EM VALIDAÇÃƒO</span>
+      <span class="tag">EM VALIDAÇÃO</span>
     `;
     box.appendChild(div);
     return;
@@ -1730,9 +1735,9 @@ function updateClientValidationUI(stNow){
         div.innerHTML = `
           <div>
             <b>${l.action}</b>
-            <div>${when} â€¢ ${l.detail}</div>
+            <div>${when} • ${l.detail}</div>
           </div>
-          <span class="tag">ALTERAÇÃƒO</span>
+          <span class="tag">ALTERAÇÃO</span>
         `;
         box.appendChild(div);
       });
@@ -1801,12 +1806,12 @@ if(btnEnviar){
       if(!box) return;
 
       // Contexto do pedido (FAP/Cliente/GP/Filial)
-      const elFap = document.getElementById("p4Fap"); if(elFap) elFap.textContent = state.fap || "â€”";
-      const elCli = document.getElementById("p4Cliente"); if(elCli) elCli.textContent = state.cliente || "â€”";
-      const elGP  = document.getElementById("p4GP"); if(elGP) elGP.textContent = state.gp || "â€”";
-      const elFil = document.getElementById("p4Filial"); if(elFil) elFil.textContent = state.filial || "â€”";
-      const elL = document.getElementById("p4Lider"); if(elL) elL.textContent = state.lider || "â€”";
-      const elPMO = document.getElementById("p4GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "â€”";
+      const elFap = document.getElementById("p4Fap"); if(elFap) elFap.textContent = state.fap || "—";
+      const elCli = document.getElementById("p4Cliente"); if(elCli) elCli.textContent = state.cliente || "—";
+      const elGP  = document.getElementById("p4GP"); if(elGP) elGP.textContent = state.gp || "—";
+      const elFil = document.getElementById("p4Filial"); if(elFil) elFil.textContent = state.filial || "—";
+      const elL = document.getElementById("p4Lider"); if(elL) elL.textContent = state.lider || "—";
+      const elPMO = document.getElementById("p4GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "—";
       const valComment = document.getElementById("p4ValidationComment");
       if(valComment) valComment.value = state.validationComment || "";
       const obsWrap = document.getElementById("p4ObsWrap");
@@ -1874,8 +1879,8 @@ if(btnEnviar){
         const vLabel = v === "PJ" ? "HOMOLOGADO" : "BP";
         div.innerHTML = `
           <div>
-            <b>${x.nome} â€¢ ${vLabel}</b>
-            <div>${fmtBR(x.dataISO)} â€¢ ${turno} â€¢ Pack: ${packNome}${x.modalidade ? " â€¢ "+x.modalidade : ""}</div>
+            <b>${x.nome} • ${vLabel}</b>
+            <div>${fmtBR(x.dataISO)} • ${turno} • Pack: ${packNome}${x.modalidade ? " • "+x.modalidade : ""}</div>
             <div style="margin-top:4px; color:#fde68a"><b>Justificativa:</b> ${x.just}</div>
           </div>
           <span class="tag">ALERTA</span>
@@ -1942,7 +1947,7 @@ if(btnEnviar){
     }
     initApp();
   
-    /* ===== Etapa 4 â€“ Troca de consultor com verificação de recursos (modal) ===== */
+    /* ===== Etapa 4 – Troca de consultor com verificação de recursos (modal) ===== */
 let swapCtx = { open:false, reserva:null, selected:null, needJust:false, dateISO:null, turno:null };
 let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed:false };
 
@@ -1958,10 +1963,10 @@ let reprogramCtx = { open:false, fap:null, onConfirm:null, prevFap:"", confirmed
       // Contexto
       const packNome = (packs[reserva.packId]?.nome || reserva.packId);
       const turno = reserva.turno === "M" ? "Manhã" : (reserva.turno === "T" ? "Tarde" : reserva.turno);
-      $("#swapContext").innerHTML = `<b>FAP ${reserva.fap}</b> â€¢ Atual: ${fmtBR(reserva.dataISO)} â€¢ ${turno} â€¢ Pack: <b>${packNome}</b>`;
+      $("#swapContext").innerHTML = `<b>FAP ${reserva.fap}</b> • Atual: ${fmtBR(reserva.dataISO)} • ${turno} • Pack: <b>${packNome}</b>`;
 
       // Badges
-      $("#swapBadgeSlot").textContent = `Slot atual: ${fmtBR(reserva.dataISO)} â€¢ ${turno}`;
+      $("#swapBadgeSlot").textContent = `Slot atual: ${fmtBR(reserva.dataISO)} • ${turno}`;
       const cltAvail = hasCltAvailabilityInPeriod();
       $("#swapBadgeRule").textContent = `Regra Homologados/Recurso Sankhya: ${cltAvail ? "ha Recurso Sankhya disponivel no periodo" : "sem Recurso Sankhya disponivel no periodo"}`;
 
@@ -2088,7 +2093,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
     }
 
     function renderPersonMini(c, reserva, isCurrent=false, slotDateISO=null, slotTurno=null, ignoreReserva=null){
-      if(!c) return `<div class="muted">â€”</div>`;      const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
+      if(!c) return `<div class="muted">—</div>`;      const profChip = c.nivel ? `<span class="chip">${c.nivel}</span>` : "";
       const checkDate = slotDateISO || reserva.dataISO;
       const checkTurno = slotTurno || reserva.turno;
       const slotFree = isSlotFreeConsideringSwap(c.codusu, checkDate, checkTurno, ignoreReserva);
@@ -2101,7 +2106,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               <span class="chip">${c.codusu}</span>
               ${profChip}
             </div>
-            <div class="muted" style="margin-top:4px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "â€”"))}</div>
+            <div class="muted" style="margin-top:4px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
             <div class="meta" style="margin-top:8px">${badge} <span class="badge">${periodPct}% livre no período</span></div>
           </div>
           ${isCurrent ? `<span class="badge">Atual</span>` : ``}
@@ -2178,15 +2183,15 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
       const r = swapCtx.reserva;
       if(!r) return;
       const { dateISO, turno } = getSwapTargetSlot();
-      const packNome = packs[r.packId]?.nome || r.packId || "â€”";
+      const packNome = packs[r.packId]?.nome || r.packId || "—";
       const curTurno = r.turno === "M" ? "Manhã" : "Tarde";
       const newTurno = turno === "M" ? "Manhã" : "Tarde";
-      const curLabel = `${fmtBR(r.dataISO)} â€¢ ${curTurno}`;
-      const newLabel = `${fmtBR(dateISO)} â€¢ ${newTurno}`;
-      $("#swapContext").innerHTML = `<b>FAP ${r.fap}</b> â€¢ Atual: ${curLabel} â€¢ Novo: ${newLabel} â€¢ Pack: <b>${packNome}</b>`;
+      const curLabel = `${fmtBR(r.dataISO)} • ${curTurno}`;
+      const newLabel = `${fmtBR(dateISO)} • ${newTurno}`;
+      $("#swapContext").innerHTML = `<b>FAP ${r.fap}</b> • Atual: ${curLabel} • Novo: ${newLabel} • Pack: <b>${packNome}</b>`;
       $("#swapBadgeSlot").textContent = (r.dataISO===dateISO && r.turno===turno)
         ? `Slot: ${newLabel}`
-        : `Slot atual: ${curLabel} â€¢ Novo: ${newLabel}`;
+        : `Slot atual: ${curLabel} • Novo: ${newLabel}`;
 
       const atual = consultoresBase.find(c => c.codusu===r.codusu);
       $("#swapCurrentBox").innerHTML = renderPersonMini(atual, r, true, dateISO, turno, r);
@@ -2287,7 +2292,7 @@ function openReprogramModal(fap, onConfirm, prevFap=""){
               ${slotBadge}
               <span class="badge">${pct}% livre no período</span>
             </div>
-            <div class="muted" style="margin-top:6px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "â€”"))}</div>
+            <div class="muted" style="margin-top:6px">${(vinculoFromSub(c.sub)==="CLT") ? "Recurso Sankhya" : ((vinculoFromSub(c.sub)==="PJ") ? "Homologados" : ((c.sub||"").trim() || "—"))}</div>
           </div>
           <div class="right">
                         <div class="kpi"><b>${c.nivel || "-"}</b><br/><span class="muted">N\u00edvel de profici\u00eancia</span></div>
@@ -2483,7 +2488,7 @@ if(cbtn){
       if(rr && $("#swapJustText")){
         const t = $("#swapJustText");
         const reason = rr.getAttribute("data-reason");
-        t.value = (t.value ? (t.value.trim() + " â€¢ ") : "") + reason;
+        t.value = (t.value ? (t.value.trim() + " • ") : "") + reason;
         t.focus();
       }
 
@@ -2661,7 +2666,7 @@ openModal = function(ctx){
 }
 function getModalidade(){
   const r = document.querySelector('input[name="modalidadeAgenda"]:checked');
-  if(!r){ alert('âš ï¸ Selecione se a agenda é Remota ou Presencial.'); return null; }
+  if(!r){ alert('⚠️ Selecione se a agenda é Remota ou Presencial.'); return null; }
   return r.value;
 }
 // patch reserve buttons
@@ -2681,3 +2686,4 @@ document.getElementById("btnReserveDay")?.addEventListener("click", (e)=>{
   const m = getModalidade(); if(!m){ e.stopImmediatePropagation(); return; }
   modalCtx.modalidade = m;
 });
+
