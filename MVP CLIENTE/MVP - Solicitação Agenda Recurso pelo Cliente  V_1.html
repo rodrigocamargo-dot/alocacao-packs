@@ -1160,7 +1160,7 @@
       <div class="grid" style="grid-template-columns: 420px 1fr; margin-top:14px;">
         <div class="card">
           <div class="content">
-            <h2>Cadastro – Recursos CLT</h2>
+            <h2>Cadastro – Recurso Sankhya</h2>
 
             <div class="row">
               <div>
@@ -1218,14 +1218,14 @@
               <button id="btnResetClt">Limpar</button>
             </div>
             <div class="hint">
-              Cadastro de recursos CLT para composição da demanda.
+              Cadastro de Recurso Sankhya para composição da demanda.
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="content">
-            <h2>Recursos CLT cadastrados</h2>
+            <h2>Recurso Sankhya Cadastrado</h2>
             <div class="toolbar">
               <div class="chip">Total: <span id="cltCount">0</span></div>
             </div>
@@ -1239,11 +1239,11 @@
       <div class="grid" style="grid-template-columns: 420px 1fr; margin-top:14px;">
         <div class="card">
           <div class="content">
-            <h2>Disponibilizar Recursos CLT para Base</h2>
+            <h2>Disponibilizar Recurso Sankhya para Base</h2>
 
             <div class="row">
               <div>
-                <label>Buscar recurso CLT</label>
+                <label>Buscar Recurso Sankhya</label>
                 <input id="cltBuscaNome" placeholder="Nome do recurso" />
               </div>
             </div>
@@ -1265,14 +1265,14 @@
             </div>
 
             <div class="hint">
-              Selecione o recurso CLT e reserve a agenda (multi-seleção com Ctrl/Shift).
+              Selecione o Recurso Sankhya e reserve a agenda (multi-seleção com Ctrl/Shift).
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="content">
-            <h2>Agenda CLT</h2>
+            <h2>Agenda Recurso Sankhya</h2>
             <div class="toolbar">
               <div class="chip">Janela: <span id="cltKJanela">—</span></div>
               <div class="chip">Selecionado: <span id="cltKCons">—</span></div>
@@ -1292,7 +1292,7 @@
               <table id="agendaTableClt">
                 <thead>
                   <tr id="theadRowClt">
-                    <th style="min-width:240px">Recurso CLT</th>
+                    <th style="min-width:240px">Recurso Sankhya</th>
                   </tr>
                 </thead>
                 <tbody id="tbodyClt"></tbody>
@@ -1685,7 +1685,7 @@
 <div class="modal-backdrop" id="cltReserveBackdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="hd">
-      <strong>Disponibilizar Agenda CLT para Base</strong>
+      <strong>Disponibilizar Agenda Recurso Sankhya para Base</strong>
       <button id="btnCloseCltReserve">Fechar</button>
     </div>
     <div class="bd">
@@ -3210,7 +3210,7 @@ function renderCltFila(){
   if(pill) pill.textContent = String(state.cltConsultants.length);
 
   if(!di || !df){
-    head.innerHTML = `<th style="min-width:240px">Recurso CLT</th>`;
+    head.innerHTML = `<th style="min-width:240px">Recurso Sankhya</th>`;
     tbody.innerHTML = "";
     updateSelectionKpisClt();
     updateSelectionKpisCltLb();
@@ -3218,7 +3218,7 @@ function renderCltFila(){
   }
 
   const days = buildDaysRange(di, df);
-  head.innerHTML = `<th style="min-width:240px">Recurso CLT</th>`;
+  head.innerHTML = `<th style="min-width:240px">Recurso Sankhya</th>`;
   days.forEach(d=>{
     const dd = String(d.getDate()).padStart(2,"0");
     const mm = String(d.getMonth()+1).padStart(2,"0");
@@ -3231,9 +3231,9 @@ function renderCltFila(){
     const tdName = document.createElement("td");
     tdName.innerHTML = `
       <div class="meta">
-        <div><b>${c.name}</b> <span class="tag">${c.type}</span></div>
+        <div><b>${c.name}</b> <span class="tag">RECURSO SANKHYA</span></div>
+        <div class="sub">Parceiro: <b>Delivery Center</b></div>
         <div class="sub">Senioridade: <b>${c.seniority}</b> • Ociosidade: <b>${c.idlePct}%</b></div>
-        <div class="sub">Tipo: <b>CLT</b></div>
       </div>
     `;
     tr.appendChild(tdName);
@@ -4062,7 +4062,10 @@ function buildResumoRowsForReservation(r){
   const pack = r.demanda?.pack || "—";
   const detalhe = r.demanda?.detalhe || "—";
   const consultor = r.consultant?.name || "—";
-  const parceiroHom = r.consultant?.partnerName || "—";
+  const consultorType = String(r.consultant?.type || "");
+  const parceiroHom = consultorType.startsWith("CLT")
+    ? "Recurso Sankhya"
+    : (r.consultant?.partnerName || "—");
   const svr = r.svr || "SVR-—";
   const rows = [];
   const byDay = new Map();
@@ -4147,7 +4150,7 @@ function printResumoForReservation(r){
   const totalValor = vh > 0 ? (totalHoras * vh) : 0;
   const consultorType = baseConsultant?.type || r.consultant?.type || "";
   const consultorParceiro = consultorType && String(consultorType).startsWith("CLT")
-    ? "RECURSO SANKHYA"
+    ? "Delivery Center"
     : (baseConsultant?.partnerName || r.consultant?.partnerName || "—");
   const consultorInfo = {
     nome: baseConsultant?.name || r.consultant?.name || "—",
@@ -4241,7 +4244,7 @@ function printResumoForReservation(r){
           <th>Pack</th>
           <th>Detalhamento</th>
           <th>Consultor</th>
-          <th>Parceiro homologado</th>
+          <th>Parceiro</th>
           <th>Data início</th>
           <th>Data fim</th>
           <th>Período</th>
@@ -5020,7 +5023,7 @@ function renderClt(){
       <div class="terceiro-top">
         <div>
           <div class="terceiro-name">${nome}</div>
-          <div class="terceiro-sub">CLT • ${cargo}</div>
+          <div class="terceiro-sub">RECURSO SANKHYA • ${cargo}</div>
         </div>
         <div class="terceiro-actions">
           <button class="btn-sm" data-define="${c.id}">Definir proficiencia Recurso</button>
@@ -5040,7 +5043,7 @@ function renderClt(){
     `;
     card.querySelector("[data-define]").addEventListener("click", ()=> openTerceiroModal(c.id, "clt"));
     card.querySelector("[data-del]").addEventListener("click", ()=>{
-      if(!confirm("Remover este recurso CLT?")) return;
+      if(!confirm("Remover este Recurso Sankhya?")) return;
       state.clt = state.clt.filter(x => x.id !== c.id);
       saveState();
       renderClt();
@@ -5622,7 +5625,7 @@ $$("btnAddClt")?.addEventListener("click", ()=>{
   $$("cltObs").value = "";
   saveState();
   renderClt();
-  toast("Recurso CLT salvo", "Cadastro atualizado com sucesso.", "info", 2200);
+  toast("Recurso Sankhya salvo", "Cadastro atualizado com sucesso.", "info", 2200);
 });
 
 $$("btnResetClt")?.addEventListener("click", ()=>{
