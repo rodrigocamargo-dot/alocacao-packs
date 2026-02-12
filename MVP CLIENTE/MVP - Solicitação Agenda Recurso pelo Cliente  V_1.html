@@ -683,6 +683,22 @@
 
             <div class="row" style="margin-top:10px">
               <div>
+                <label>Telefone contato do solicitante</label>
+                <input id="inTelefoneContato" placeholder="Ex: (11) 98888-7777" />
+              </div>
+              <div>
+                <label>Email de contato</label>
+                <input id="inEmailContato" type="email" placeholder="Ex: solicitante@cliente.com" />
+              </div>
+            </div>
+
+            <div style="margin-top:10px">
+              <label>Link da reunião (se remoto)</label>
+              <input id="inLinkReuniao" placeholder="Ex: https://meet.google.com/abc-defg-hij" />
+            </div>
+
+            <div class="row" style="margin-top:10px">
+              <div>
                 <label>Gerente de Relacionamento</label>
                 <input id="inGerRel" placeholder="Ex: João Silva" />
               </div>
@@ -2204,6 +2220,9 @@ function saveState(){
       nomeCliente: $$("inNomeCliente").value.trim(),
       filial: $$("inFilial").value.trim(),
       analista: $$("inAnalista").value.trim(),
+      telefoneContato: $$("inTelefoneContato").value.trim(),
+      emailContato: $$("inEmailContato").value.trim(),
+      linkReuniao: $$("inLinkReuniao").value.trim(),
       gerenteRel: $$("inGerRel").value.trim(),
       gerenteCS: $$("inGerCS").value.trim(),
       origem: $$("inOrigem").value,
@@ -2364,6 +2383,9 @@ function loadState(){
     $$("inNomeCliente").value = data.demandaForm.nomeCliente || "";
     $$("inFilial").value = data.demandaForm.filial || "";
     $$("inAnalista").value = data.demandaForm.analista || "";
+    $$("inTelefoneContato").value = data.demandaForm.telefoneContato || "";
+    $$("inEmailContato").value = data.demandaForm.emailContato || "";
+    $$("inLinkReuniao").value = data.demandaForm.linkReuniao || "";
     $$("inGerRel").value = data.demandaForm.gerenteRel || "";
     $$("inGerCS").value = data.demandaForm.gerenteCS || "";
     $$("inOrigem").value = data.demandaForm.origem || "";
@@ -3356,6 +3378,9 @@ function openModal(){
     nomeCliente: $$("inNomeCliente").value.trim(),
     filial: $$("inFilial").value.trim(),
     analista: $$("inAnalista").value.trim(),
+    telefoneContato: $$("inTelefoneContato").value.trim(),
+    emailContato: $$("inEmailContato").value.trim(),
+    linkReuniao: $$("inLinkReuniao").value.trim(),
     gerenteRel: $$("inGerRel").value.trim(),
     gerenteCS: $$("inGerCS").value.trim(),
     origem: $$("inOrigem").value.trim(),
@@ -3828,9 +3853,6 @@ function getValorHoraLabel(c){
 }
 
 function getValorHoraValueFor(packNeed, c){
-  const direct = getPartnerRateByProf(c?.partnerName, c?.profShort);
-  if(direct > 0) return direct;
-
   const packFilter = String(packNeed || "").trim();
   let nivel = "";
   if(c.type === "CLT-DB"){
@@ -4100,10 +4122,18 @@ function printResumoForReservation(r){
   const info = {
     parceiro: r.demanda?.nomeCliente || "—",
     solicitante: r.demanda?.analista || "—",
+    telefoneContato: r.demanda?.telefoneContato || "—",
+    emailContato: r.demanda?.emailContato || "—",
     dataSolic: r.demanda?.createdAt ? fmtDateSafe(r.demanda.createdAt) : "—",
     gerenteRel: r.demanda?.gerenteRel || "—",
     gerenteCS: r.demanda?.gerenteCS || "—"
   };
+  const isRemoto = String(r.modalidade || "").toLowerCase() === "remoto";
+  const linkReuniaoRaw = String(r.demanda?.linkReuniao || "").trim();
+  const linkReuniaoSafe = escapeHtml(linkReuniaoRaw);
+  const linkReuniaoCell = isRemoto
+    ? (linkReuniaoRaw ? `<a href="${linkReuniaoSafe}" target="_blank" rel="noopener noreferrer">${linkReuniaoSafe}</a>` : "—")
+    : "—";
   const slotsByDay = new Map();
   (r.slots || []).forEach(s=>{
     const key = s.day || "—";
@@ -4147,20 +4177,26 @@ function printResumoForReservation(r){
           <tr>
             <th>Nome Parceiro</th>
             <td>${escapeHtml(info.parceiro)}</td>
-            <th>Nome Solicitante</th>
+            <th>Nome do Solicitante</th>
             <td>${escapeHtml(info.solicitante)}</td>
           </tr>
           <tr>
             <th>Data Solicitação</th>
             <td>${escapeHtml(info.dataSolic)}</td>
-            <th>Nome Gerente de Relacionamento</th>
-            <td>${escapeHtml(info.gerenteRel)}</td>
+            <th>Telefone contato solicitante</th>
+            <td>${escapeHtml(info.telefoneContato)}</td>
           </tr>
           <tr>
-            <th>Nome Gerente Sucesso Cliente</th>
+            <th>Nome Gerente de Relacionamento</th>
+            <td>${escapeHtml(info.gerenteRel)}</td>
+            <th>Email de contato</th>
+            <td>${escapeHtml(info.emailContato)}</td>
+          </tr>
+          <tr>
+            <th>Nome do Sucesso Cliente</th>
             <td>${escapeHtml(info.gerenteCS)}</td>
-            <th></th>
-            <td></td>
+            <th>Link da reunião</th>
+            <td>${isRemoto ? linkReuniaoCell : "—"}</td>
           </tr>
         </tbody>
       </table>
@@ -5182,6 +5218,9 @@ $$("btnCancelYes")?.addEventListener("click", confirmCancel);
   "inNomeCliente",
   "inFilial",
   "inAnalista",
+  "inTelefoneContato",
+  "inEmailContato",
+  "inLinkReuniao",
   "inOrigem",
   "inPack",
   "inDetalhe",
@@ -5268,7 +5307,7 @@ $$("btnProximoFila").addEventListener("click", ()=>{
 });
 
 $$("btnLimpar").addEventListener("click", ()=>{
-  ["inCodCliente","inNomeCliente","inFilial","inAnalista","inGerRel","inGerCS","inPack","inDetalhe"].forEach(id=> $$(id).value="");
+  ["inCodCliente","inNomeCliente","inFilial","inAnalista","inTelefoneContato","inEmailContato","inLinkReuniao","inGerRel","inGerCS","inPack","inDetalhe"].forEach(id=> $$(id).value="");
   $$("inOrigem").value="";
   $$("inOS").value="";
   $$("inDtIni").value="";
@@ -5969,6 +6008,9 @@ function confirmCltReserve(){
         nomeCliente: $$("inNomeCliente")?.value.trim() || "CLT Base",
         filial: $$("inFilial")?.value.trim() || "",
         analista: $$("inAnalista")?.value.trim() || "",
+        telefoneContato: $$("inTelefoneContato")?.value.trim() || "",
+        emailContato: $$("inEmailContato")?.value.trim() || "",
+        linkReuniao: $$("inLinkReuniao")?.value.trim() || "",
         gerenteRel: $$("inGerRel")?.value.trim() || "",
         gerenteCS: $$("inGerCS")?.value.trim() || "",
         origem: "CLT",
@@ -6249,6 +6291,9 @@ function reserveSlotsMPV(slots, modalidade){
     nomeCliente: $$("inNomeCliente")?.value.trim() || "",
     filial: $$("inFilial")?.value.trim() || "",
     analista: $$("inAnalista")?.value.trim() || "",
+    telefoneContato: $$("inTelefoneContato")?.value.trim() || "",
+    emailContato: $$("inEmailContato")?.value.trim() || "",
+    linkReuniao: $$("inLinkReuniao")?.value.trim() || "",
     gerenteRel: $$("inGerRel")?.value.trim() || "",
     gerenteCS: $$("inGerCS")?.value.trim() || "",
     origem: $$("inOrigem")?.value || "",
@@ -6497,5 +6542,6 @@ document.addEventListener("click", (e)=>{
 
 </body>
 </html>
+
 
 
