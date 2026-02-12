@@ -1,0 +1,385 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Projects - Alocacao de Demandas, Prazo e Recursos</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="titles">
+        <h1>Projects - Alocacao de Demandas, Prazo e Recursos</h1>
+        <p>Project como gatilho unico de demanda, prazo, capacidade e alocacao</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnExport">Exportar JSON</button>
+      <button class="btn danger" id="btnReset">Resetar Dados</button>
+      <button class="btn primary" id="btnGoResumo">Ir para Resumo</button>
+    </div>
+  </div>
+  <div class="headRow2">
+    <div class="headRow2Label">Cadastro Recursos</div>
+    <div class="headRow2Items">
+      <button class="btn resourceBtn" type="button">Recurso Sankhya</button>
+      <button class="btn resourceBtn" type="button">Parceiro Homologado</button>
+      <button class="btn resourceBtn" type="button">Recurso Homologado</button>
+      <button class="btn resourceBtn" type="button">Parceiros</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" role="tablist" aria-label="Abas">
+    <div class="tab active" data-tab="tab1" role="tab">1) Carregar o Projeto - FAP</div>
+    <div class="tab" data-tab="tab2" role="tab">2) Capacidade & Alocacao</div>
+    <div class="tab" data-tab="tab3" role="tab">3) Cronograma & Risco</div>
+    <div class="tab" data-tab="tab4" role="tab">4) Cronograma (MS Project)</div>
+  </div>
+
+  <div class="content">
+    <!-- TAB 1 -->
+    <section id="tab1" class="tabPane">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Entrada da Demanda</h2>
+            <small>dados minimos obrigatorios do project</small>
+          </div>
+          <div class="bd">
+            <div class="row">
+              <div>
+                <label>Numero FAP</label>
+                <input id="projectCode" placeholder="Ex.: 31200" />
+              </div>
+              <div>
+                <label>Cliente</label>
+                <input id="cliente" placeholder="Ex.: Politintas" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Origem da Demanda</label>
+                <select id="origem">
+                  <option value="Projeto Novo">Projeto Novo</option>
+                  <option value="Projeto Segunda Fase">Projeto Segunda Fase</option>
+                  <option value="Demandas Base">Demandas Base</option>
+                  <option value="Reprogramacao Agendas">Reprogramacao Agendas</option>
+                </select>
+              </div>
+              <div>
+                <label>Tipo de Recurso</label>
+                <select id="tipoRecurso">
+                  <option value="Homologados">Homologados</option>
+                  <option value="Homologados + Recurso Sankhya">Homologados + Recurso Sankhya</option>
+                  <option value="Recurso Sankhya">Recurso Sankhya</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Duracao Projeto em Dias</label>
+                <input id="slaDias" readonly />
+              </div>
+              <div>
+                <label>Esforco Estimado (slots)</label>
+                <input id="esforcoSlots" type="number" min="1" step="1" placeholder="Ex.: 8" />
+              </div>
+            </div>
+
+            <div class="row3">
+              <div>
+                <label>Papel do Recurso</label>
+                <select id="perfilPapel">
+                  <option value="Consultor ERP">Consultor ERP</option>
+                  <option value="Especialista Fiscal">Especialista Fiscal</option>
+                  <option value="Instrutor">Instrutor</option>
+                  <option value="Arquiteto de Solucao">Arquiteto de Solucao</option>
+                </select>
+              </div>
+              <div>
+                <label>Proficiência Minima</label>
+                <select id="perfilProficiencia">
+                  <option value="Executor">Executor</option>
+                  <option value="Autônomo">Autônomo</option>
+                  <option value="Proficiente">Proficiente</option>
+                  <option value="Referência">Referência</option>
+                </select>
+              </div>
+              <div>
+                <label>Modalidade</label>
+                <select id="modalidadeProjeto">
+                  <option value="Remoto">Remoto</option>
+                  <option value="Presencial">Presencial</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row1">
+              <div>
+                <label>Permissão: Quais dias da semana pode atender?</label>
+                <div class="permMatrix">
+                  <div class="permRow"><span>Segunda</span><label><input type="checkbox" id="permSegManha" checked /> Manha</label><label><input type="checkbox" id="permSegTarde" checked /> Tarde</label></div>
+                  <div class="permRow"><span>Terca</span><label><input type="checkbox" id="permTerManha" checked /> Manha</label><label><input type="checkbox" id="permTerTarde" checked /> Tarde</label></div>
+                  <div class="permRow"><span>Quarta</span><label><input type="checkbox" id="permQuaManha" checked /> Manha</label><label><input type="checkbox" id="permQuaTarde" checked /> Tarde</label></div>
+                  <div class="permRow"><span>Quinta</span><label><input type="checkbox" id="permQuiManha" checked /> Manha</label><label><input type="checkbox" id="permQuiTarde" checked /> Tarde</label></div>
+                  <div class="permRow"><span>Sexta</span><label><input type="checkbox" id="permSexManha" checked /> Manha</label><label><input type="checkbox" id="permSexTarde" checked /> Tarde</label></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Data Inicio Desejada</label>
+                <input id="dtInicio" type="date" />
+              </div>
+              <div>
+                <label>Data Fim Desejada</label>
+                <input id="dtFim" type="date" />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row1">
+              <div>
+                <label>Pack / Escopo Relacionado</label>
+                <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap">
+                  <button class="btn" id="btnSelectAllPacks" type="button">Selecionar todos os packs vendidos</button>
+                </div>
+                <div class="packList" id="packChips"></div>
+                <div id="packAdminList" class="packAdminList"></div>
+                <p class="hint" style="margin:10px 0 0">
+                  Selecione 1 ou mais packs para habilitar a reserva.
+                </p>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row1">
+              <button class="btn primary" id="btnSalvarEntrada">Criar Project</button>
+              <p class="hint" style="margin:10px 0 0">
+                Ao criar o project, siga para a analise de capacidade e alocacao.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Visao do Project</h2>
+            <small>consolidacao do planejamento</small>
+          </div>
+          <div class="bd">
+            <div class="kvs" id="kvsProjeto"></div>
+            <div class="divider"></div>
+            <div class="row1">
+              <div class="empty">
+                <b>Como usar</b>
+                <ul style="margin:10px 0 0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.55">
+                  <li>Crie o Project com prazo, capacidade e perfil de recurso.</li>
+                  <li>Va para a aba <b>2) Capacidade & Alocacao</b>.</li>
+                  <li>Selecione slots <b>no mesmo consultor</b> com Ctrl/Shift.</li>
+                  <li>Clique <b>Reservar Selecionados</b> e confirme.</li>
+                  <li>Acompanhe cronograma e risco na aba <b>3) Cronograma & Risco</b>.</li>
+                </ul>
+                <div class="divider"></div>
+                <b>Proficiência (descrição completa)</b>
+                <ul style="margin:10px 0 0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.55">
+                  <li><b>Executor</b> – Executa tarefas mais simples e rotineiras, como levantamento inicial de dados e auxílio em treinamento, seguindo processos definidos. Requer supervisão.</li>
+                  <li><b>Autônomo</b> – Lida com tarefas mais complexas, como análises detalhadas de processos de negócios, configuração do sistema e suporte a testes. Consegue propor soluções para problemas dentro da sua área de atuação.</li>
+                  <li><b>Proficiente</b> – Possui domínio técnico em uma área muito particular do sistema, atuando como referência naquele assunto específico. Foca mais na configuração, parametrização e solução de problemas técnicos pontuais dentro da sua especialidade, seguindo as diretrizes do projeto.</li>
+                  <li><b>Referência</b> – Além de ser especialista em alguma área, atua de forma autônoma e estratégica, comunica-se com clareza e precisão tanto com as equipes técnicas, quanto com os níveis diretivos dos clientes. Possui maturidade e experiência para resolver problemas de alta complexidade e lidar com cenários de mudança organizacional durante a implantação.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2 -->
+    <section id="tab2" class="tabPane" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <h2>Capacidade & Alocacao</h2>
+          <small>analise de elegibilidade e agenda</small>
+        </div>
+
+        <div class="rightTop">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:0 12px;">
+            <span class="pill purple" id="pillProjeto">Project: -</span>
+            <span class="pill" id="pillFiltro">Filtro: -</span>
+            <span class="pill orange" id="pillRisco">Risco SLA: -</span>
+            <span class="pill" id="pillSlaStatus">SLA: -</span>
+            <span class="mini" id="miniHint">
+              Multi selecao: <b>Ctrl</b> (discreta) • <b>Shift</b> (intervalo)
+            </span>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:0 12px;">
+            <div style="min-width:220px">
+              <label style="margin-bottom:6px">Filtro de Recursos</label>
+              <select id="filtroRecursos">
+                <option value="Todos">Todos</option>
+                <option value="Homologados">Homologados</option>
+                <option value="Recurso Sankhya">Recurso Sankhya</option>
+                <option value="Homologados + Recurso Sankhya">Homologados + Recurso Sankhya</option>
+              </select>
+            </div>
+            <div style="min-width:220px">
+              <label style="margin-bottom:6px">Buscar Consultor</label>
+              <input id="buscarConsultor" placeholder="Nome / proficiência / parceiro..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="capacityBox" id="capacityBox">
+          <div class="kvs" id="kvsCapacidade"></div>
+        </div>
+
+        <div class="reserveBar">
+          <div class="count" id="selCount">0 slots selecionados</div>
+          <button class="btn" id="btnLimparSel">Limpar seleção</button>
+          <button class="btn primary" id="btnReservarSel" disabled>Reservar Selecionados</button>
+          <span class="hint">Somente slots <b>L</b> (livres) entram na reserva.</span>
+        </div>
+
+        <div class="slotGrid" id="consultoresContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3 -->
+    <section id="tab3" class="tabPane" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Resumo Executivo</h2>
+            <small>project, cronograma e risco</small>
+          </div>
+          <div class="bd">
+            <div class="kvs" id="kvsResumo"></div>
+            <div class="divider"></div>
+            <button class="btn danger" id="btnLimparResumo">Limpar reservas do resumo</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+              <button class="btn" id="btnExportCronograma">Exportar Cronograma JSON</button>
+              <button class="btn" id="btnImportCronograma">Importar Cronograma JSON</button>
+              <button class="btn" id="btnBaselineCronograma">Gerar Baseline</button>
+              <input id="cronogramaFile" type="file" accept="application/json" style="display:none" />
+            </div>
+            <p class="hint" style="margin:10px 0 0">Obs.: o prototipo usa <b>localStorage</b> para manter dados ao atualizar.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd">
+            <h2>Grid de Reservas</h2>
+            <small>Project / Etapa / Pack / Consultor / Periodo / Modalidade / Risco</small>
+          </div>
+          <div class="bd">
+            <div id="gridResumoWrap"></div>
+            <div class="divider"></div>
+            <div id="cronogramaWrap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4 -->
+    <section id="tab4" class="tabPane" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <h2>Cronograma (MS Project)</h2>
+          <small>outline WBS + gantt simples</small>
+        </div>
+        <div class="bd">
+          <div class="msToolbar">
+            <button class="btn" id="btnMsAddTask">Adicionar tarefa</button>
+            <button class="btn" id="btnMsAddMilestone">Adicionar marco</button>
+            <button class="btn" id="btnMsIndent">Indent</button>
+            <button class="btn" id="btnMsOutdent">Outdent</button>
+            <button class="btn danger" id="btnMsDeleteTask">Excluir tarefa selecionada</button>
+            <button class="btn" id="btnMsBaseline">Definir baseline</button>
+            <button class="btn" id="btnMsCompareBaseline">Comparar baseline</button>
+          </div>
+          <div class="msLayout">
+            <div class="msGridWrap" id="msGridWrap"></div>
+            <div class="msGanttWrap" id="msGanttWrap"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modalBack" id="modalBack">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Reservar agenda">
+    <div class="mh">
+      <h3>Reservar Agenda (selecionados)</h3>
+      <button class="btn" id="btnFecharModal">Fechar</button>
+    </div>
+    <div class="mb">
+      <div class="row3">
+        <div>
+          <label>Etapa (obrigatória)</label>
+          <select id="modalEtapa">
+            <option value="">Selecione...</option>
+            <option>Kickoff</option>
+            <option>Levantamento</option>
+            <option>Parametrização</option>
+            <option>Treinamento</option>
+            <option>Testes</option>
+            <option>Go-Live</option>
+            <option>Base</option>
+          </select>
+        </div>
+        <div>
+          <label>Modalidade (obrigatória)</label>
+          <select id="modalModalidade">
+            <option value="">Selecione...</option>
+            <option>Remoto</option>
+            <option>Presencial</option>
+          </select>
+        </div>
+        <div>
+          <label>Pack (obrigatório)</label>
+          <select id="modalPack"></select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="kvs" id="kvsReserva"></div>
+
+      <div class="divider"></div>
+
+      <div class="row1">
+        <div>
+          <label>Observações</label>
+          <textarea id="modalObs" placeholder="Ex.: reservar para validação / alinhado com GP / necessidade de presencial..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="btnCancelarReserva">Cancelar</button>
+      <button class="btn primary" id="btnConfirmarReserva">Confirmar Reservas</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <b id="toastTitle">Ok</b>
+  <p id="toastMsg">—</p>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
+
+

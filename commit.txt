@@ -1,0 +1,7 @@
+git add .
+git commit -m "save state"
+git push origin main
+
+// DESFAZ CAGADA
+
+git restore .

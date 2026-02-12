@@ -1,0 +1,1272 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Protótipo MVP – Alocação de Recursos (Arquivo Único)</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#121924;
+      --panel2:#0f1620;
+      --text:#e8eef7;
+      --muted:#a9b7c6;
+      --brand1:#7c3aed; /* roxo */
+      --brand2:#22c55e; /* verde */
+      --warn:#f59e0b;   /* laranja */
+      --danger:#ef4444;
+      --line:rgba(255,255,255,.10);
+      --chip:rgba(255,255,255,.06);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+      --radius2: 12px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--font);
+      color:var(--text);
+      background:
+        radial-gradient(900px 400px at 10% 10%, rgba(124,58,237,.20), transparent 60%),
+        radial-gradient(900px 400px at 85% 20%, rgba(34,197,94,.14), transparent 60%),
+        var(--bg);
+    }
+    header{
+      padding:18px 20px;
+      border-bottom:1px solid var(--line);
+      position:sticky; top:0;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,20,.75);
+      z-index: 20;
+    }
+    .head{
+      display:flex; align-items:center; gap:12px; justify-content:space-between;
+      max-width:1240px; margin:0 auto;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:44px; height:44px; border-radius:14px;
+      background:
+        linear-gradient(135deg, rgba(124,58,237,.95), rgba(34,197,94,.90));
+      box-shadow: var(--shadow);
+      position:relative;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:10px;
+      border-radius:10px;
+      background: rgba(11,15,20,.55);
+      border:1px solid rgba(255,255,255,.14);
+    }
+    .titles h1{font-size:15px; margin:0; letter-spacing:.2px}
+    .titles p{font-size:12px; margin:4px 0 0; color:var(--muted)}
+    .actions{
+      display:flex; gap:10px; align-items:center;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      transition:.15s transform, .15s background, .15s border;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.18)}
+    .btn.primary{
+      background: linear-gradient(135deg, rgba(124,58,237,.92), rgba(34,197,94,.85));
+      border-color: rgba(255,255,255,.18);
+    }
+    .btn.primary:hover{filter: brightness(1.03)}
+    .btn.danger{background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.25)}
+    main{max-width:1240px; margin:16px auto 50px; padding:0 16px}
+    .tabs{
+      display:flex; gap:8px; flex-wrap:wrap;
+      padding:10px; border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .tab{
+      padding:10px 12px;
+      border-radius: 12px;
+      border:1px solid transparent;
+      cursor:pointer;
+      user-select:none;
+      font-weight:700;
+      color: var(--muted);
+      background: transparent;
+      transition: .15s;
+    }
+    .tab.active{
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.14);
+    }
+    .content{margin-top:14px}
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap:14px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      background: rgba(255,255,255,.03);
+    }
+    .card .hd h2{margin:0; font-size:13px; letter-spacing:.2px}
+    .card .hd small{color:var(--muted)}
+    .card .bd{padding:14px}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+    .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px}
+    .row1{display:grid; grid-template-columns:1fr; gap:10px}
+    label{font-size:12px; color: var(--muted); display:block; margin:0 0 6px}
+    input, select, textarea{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(11,15,20,.55);
+      color: var(--text);
+      outline:none;
+    }
+    input:focus, select:focus, textarea:focus{
+      border-color: rgba(124,58,237,.55);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.20);
+    }
+    textarea{min-height:84px; resize: vertical}
+    .chips{display:flex; flex-wrap:wrap; gap:8px}
+    .chip{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: var(--chip);
+      color: var(--muted);
+      font-weight:700;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip.on{
+      color: var(--text);
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+    }
+    .hint{
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+    .divider{height:1px; background:var(--line); margin:12px 0}
+    .table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: var(--radius2);
+      border:1px solid var(--line);
+      background: rgba(11,15,20,.35);
+    }
+    .table th,.table td{
+      padding:10px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:12px;
+      text-align:left;
+      vertical-align:middle;
+    }
+    .table th{color:var(--muted); font-weight:800; background: rgba(255,255,255,.03)}
+    .table tr:last-child td{border-bottom:none}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-weight:800;
+      font-size:11px;
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+    }
+    .pill.green{border-color: rgba(34,197,94,.35); color: rgba(34,197,94,.95); background: rgba(34,197,94,.10)}
+    .pill.orange{border-color: rgba(245,158,11,.35); color: rgba(245,158,11,.95); background: rgba(245,158,11,.10)}
+    .pill.purple{border-color: rgba(124,58,237,.40); color: rgba(124,58,237,.95); background: rgba(124,58,237,.12)}
+    .pill.red{border-color: rgba(239,68,68,.35); color: rgba(239,68,68,.95); background: rgba(239,68,68,.10)}
+    .rightTop{
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:12px 12px 0;
+    }
+    .reserveBar{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:0 12px 12px;
+    }
+    .reserveBar .count{
+      color: var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+    .slotGrid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+      padding: 12px;
+    }
+    .consultant{
+      border:1px solid var(--line);
+      border-radius: var(--radius2);
+      background: rgba(255,255,255,.03);
+      overflow:hidden;
+    }
+    .consultant .top{
+      padding:10px 12px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .consultant .name{
+      display:flex; align-items:center; gap:10px;
+      font-weight:900;
+      font-size:12px;
+    }
+    .badge{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      font-weight:900;
+      font-size:11px;
+      color: var(--muted);
+      background: rgba(255,255,255,.04);
+    }
+    .slots{
+      display:grid;
+      grid-template-columns: repeat(7, minmax(120px, 1fr));
+      gap:8px;
+      padding:12px;
+      overflow:auto;
+    }
+    @media (max-width: 1100px){
+      .slots{grid-template-columns: repeat(4, minmax(120px, 1fr))}
+    }
+    @media (max-width: 720px){
+      .slots{grid-template-columns: repeat(2, minmax(120px, 1fr))}
+    }
+    .slot{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding:10px;
+      background: rgba(11,15,20,.45);
+      cursor:pointer;
+      user-select:none;
+      transition:.12s transform, .12s border, .12s background;
+      position:relative;
+    }
+    .slot:hover{transform: translateY(-1px); border-color: rgba(255,255,255,.18)}
+    .slot .d{font-weight:900; font-size:12px}
+    .slot .p{font-size:11px; color:var(--muted); margin-top:6px; display:flex; gap:6px; flex-wrap:wrap}
+    .slot .state{
+      position:absolute; top:10px; right:10px;
+      font-weight:1000;
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+    }
+    .slot.free .state{border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.10); color: rgba(34,197,94,.95)}
+    .slot.reserved .state{border-color: rgba(245,158,11,.35); background: rgba(245,158,11,.10); color: rgba(245,158,11,.95)}
+    .slot.selected{
+      outline: 2px solid rgba(124,58,237,.65);
+      box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+      border-color: rgba(124,58,237,.55);
+    }
+    .slot.reserved{opacity:.8}
+    /* Modal */
+    .modalBack{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:18px;
+      z-index: 100;
+    }
+    .modal{
+      width:min(900px, 100%);
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(18,25,36,.95);
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modal .mh{
+      padding:14px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+    }
+    .modal .mh h3{margin:0; font-size:13px}
+    .modal .mb{padding:14px 16px}
+    .modal .mf{
+      padding:14px 16px;
+      border-top:1px solid rgba(255,255,255,.10);
+      display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;
+      background: rgba(255,255,255,.02);
+    }
+    .kvs{
+      display:grid; grid-template-columns: 1fr 1fr;
+      gap:10px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(11,15,20,.35);
+      border-radius: 14px;
+      padding:12px;
+    }
+    @media (max-width: 720px){ .kvs{grid-template-columns:1fr} }
+    .kv{
+      padding:8px 10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.03);
+    }
+    .kv b{display:block; font-size:11px; color:var(--muted); margin-bottom:4px}
+    .kv span{font-size:12px; font-weight:900}
+    .toast{
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      width: min(420px, calc(100% - 32px));
+      display:none;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(18,25,36,.95);
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      z-index: 200;
+    }
+    .toast b{font-size:12px}
+    .toast p{margin:6px 0 0; color: var(--muted); font-size:12px}
+    .mini{
+      font-size:11px; color: var(--muted);
+      margin-left:auto;
+    }
+    .empty{
+      padding:18px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(255,255,255,.02);
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="head">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="titles">
+        <h1>Protótipo MVP – Alocação de Recursos</h1>
+        <p>Arquivo único (HTML) • Multi seleção de slots no mesmo consultor • Reserva → Resumo</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnExport">Exportar JSON</button>
+      <button class="btn danger" id="btnReset">Resetar Dados</button>
+      <button class="btn primary" id="btnGoResumo">Ir para Resumo</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" role="tablist" aria-label="Abas">
+    <div class="tab active" data-tab="tab1" role="tab">1) Alocação do Projeto</div>
+    <div class="tab" data-tab="tab2" role="tab">2) Agenda & Reserva</div>
+    <div class="tab" data-tab="tab3" role="tab">3) Resumo</div>
+  </div>
+
+  <div class="content">
+    <!-- TAB 1 -->
+    <section id="tab1" class="tabPane">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Entrada da Demanda</h2>
+            <small>dados mínimos do projeto</small>
+          </div>
+          <div class="bd">
+            <div class="row">
+              <div>
+                <label>FAP / Código Projeto</label>
+                <input id="fap" placeholder="Ex.: 31200" />
+              </div>
+              <div>
+                <label>Cliente</label>
+                <input id="cliente" placeholder="Ex.: Politintas" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Origem da Entrada</label>
+                <select id="origem">
+                  <option value="Solicitação Cliente">Solicitação Cliente</option>
+                  <option value="Vendas">Vendas</option>
+                  <option value="PMO">PMO</option>
+                  <option value="Torre">Torre</option>
+                  <option value="Base">Base</option>
+                </select>
+              </div>
+              <div>
+                <label>Tipo de Recurso</label>
+                <select id="tipoRecurso">
+                  <option value="Terceiro">Terceiro</option>
+                  <option value="Terceiro + CLT">Terceiro + CLT</option>
+                  <option value="CLT">CLT</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label>Data Início Solicitada</label>
+                <input id="dtInicio" type="date" />
+              </div>
+              <div>
+                <label>Data Fim Solicitada</label>
+                <input id="dtFim" type="date" />
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row1">
+              <div>
+                <label>Packs Relacionados (seleção)</label>
+                <div class="chips" id="packChips"></div>
+                <p class="hint" style="margin:10px 0 0">
+                  Dica: selecione 1+ packs. Eles ficam disponíveis no popup de reserva.
+                </p>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="row1">
+              <button class="btn primary" id="btnSalvarEntrada">Salvar Entrada</button>
+              <p class="hint" style="margin:10px 0 0">
+                Ao salvar, você pode ir para <b>Agenda & Reserva</b> e reservar slots.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="hd">
+            <h2>Visão do Projeto</h2>
+            <small>status do protótipo</small>
+          </div>
+          <div class="bd">
+            <div class="kvs" id="kvsProjeto"></div>
+            <div class="divider"></div>
+            <div class="row1">
+              <div class="empty">
+                <b>Como usar</b>
+                <ul style="margin:10px 0 0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.55">
+                  <li>Preencha o projeto e selecione os packs.</li>
+                  <li>Vá para a aba <b>2) Agenda & Reserva</b>.</li>
+                  <li>Selecione slots <b>no mesmo consultor</b> com Ctrl/Shift.</li>
+                  <li>Clique <b>Reservar Selecionados</b> e confirme.</li>
+                  <li>Acompanhe na aba <b>3) Resumo</b>.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2 -->
+    <section id="tab2" class="tabPane" style="display:none">
+      <div class="card">
+        <div class="hd">
+          <h2>Agenda & Reserva</h2>
+          <small>multi seleção (mesmo consultor)</small>
+        </div>
+
+        <div class="rightTop">
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:0 12px;">
+            <span class="pill purple" id="pillProjeto">Projeto: —</span>
+            <span class="pill" id="pillFiltro">Filtro: —</span>
+            <span class="mini" id="miniHint">
+              Multi seleção: <b>Ctrl</b> (discreta) • <b>Shift</b> (intervalo)
+            </span>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; padding:0 12px;">
+            <div style="min-width:220px">
+              <label style="margin-bottom:6px">Filtro de Recursos</label>
+              <select id="filtroRecursos">
+                <option value="Todos">Todos</option>
+                <option value="Terceiro">Terceiro</option>
+                <option value="CLT">CLT</option>
+                <option value="Terceiro + CLT">Terceiro + CLT</option>
+              </select>
+            </div>
+            <div style="min-width:220px">
+              <label style="margin-bottom:6px">Buscar Consultor</label>
+              <input id="buscarConsultor" placeholder="Nome / senioridade / parceiro..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="reserveBar">
+          <div class="count" id="selCount">0 slots selecionados</div>
+          <button class="btn" id="btnLimparSel">Limpar seleção</button>
+          <button class="btn primary" id="btnReservarSel" disabled>Reservar Selecionados</button>
+          <span class="hint">Somente slots <b>L</b> (livres) entram na reserva.</span>
+        </div>
+
+        <div class="slotGrid" id="consultoresContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3 -->
+    <section id="tab3" class="tabPane" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <div class="hd">
+            <h2>Resumo (Grade)</h2>
+            <small>agendas reservadas</small>
+          </div>
+          <div class="bd">
+            <div class="kvs" id="kvsResumo"></div>
+            <div class="divider"></div>
+            <button class="btn danger" id="btnLimparResumo">Limpar reservas do Resumo</button>
+            <p class="hint" style="margin:10px 0 0">Obs.: o protótipo usa <b>localStorage</b> para manter dados ao atualizar.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd">
+            <h2>Grid de Reservas</h2>
+            <small>Etapa / Pack / Consultor / Período / Modalidade</small>
+          </div>
+          <div class="bd" id="gridResumoWrap"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- MODAL -->
+<div class="modalBack" id="modalBack">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Reservar agenda">
+    <div class="mh">
+      <h3>Reservar Agenda (selecionados)</h3>
+      <button class="btn" id="btnFecharModal">Fechar</button>
+    </div>
+    <div class="mb">
+      <div class="row3">
+        <div>
+          <label>Etapa (obrigatória)</label>
+          <select id="modalEtapa">
+            <option value="">Selecione...</option>
+            <option>Kickoff</option>
+            <option>Levantamento</option>
+            <option>Parametrização</option>
+            <option>Treinamento</option>
+            <option>Testes</option>
+            <option>Go-Live</option>
+            <option>Base</option>
+          </select>
+        </div>
+        <div>
+          <label>Modalidade (obrigatória)</label>
+          <select id="modalModalidade">
+            <option value="">Selecione...</option>
+            <option>Remoto</option>
+            <option>Presencial</option>
+          </select>
+        </div>
+        <div>
+          <label>Pack (obrigatório)</label>
+          <select id="modalPack"></select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="kvs" id="kvsReserva"></div>
+
+      <div class="divider"></div>
+
+      <div class="row1">
+        <div>
+          <label>Observações</label>
+          <textarea id="modalObs" placeholder="Ex.: reservar para validação / alinhado com GP / necessidade de presencial..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="btnCancelarReserva">Cancelar</button>
+      <button class="btn primary" id="btnConfirmarReserva">Confirmar Reservas</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <b id="toastTitle">Ok</b>
+  <p id="toastMsg">—</p>
+</div>
+
+<script>
+(function(){
+  const LS_KEY = "mvp_alocacao_v1";
+
+  /** ---------- Estado ---------- **/
+  const state = load() || {
+    entrada: {
+      fap: "",
+      cliente: "",
+      origem: "Solicitação Cliente",
+      tipoRecurso: "Terceiro",
+      dtInicio: "",
+      dtFim: "",
+      packs: [
+        { id: "PACK-IMPL", nome: "Implantação" , selected: true },
+        { id: "PACK-WMS",  nome: "WMS"        , selected: false },
+        { id: "PACK-PDV",  nome: "PDV"        , selected: false },
+        { id: "PACK-SPED", nome: "SPED"       , selected: false },
+        { id: "PACK-BI",   nome: "BI"         , selected: false },
+      ],
+    },
+    consultores: seedConsultores(),
+    reservas: [] // {id, fap, cliente, packId, packNome, etapa, modalidade, consultorId, consultorNome, inicio, fim, periodo, obs}
+  };
+
+  // seleção de slots (apenas em TAB2)
+  let selected = {
+    consultorId: null,
+    slotIds: [] // array de ids de slots
+  };
+  let lastClickedIndex = null;
+
+  /** ---------- Helpers ---------- **/
+  function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  function load(){
+    try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null; }
+  }
+  function uuid(){
+    return "id_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+  }
+  function formatDateBR(iso){
+    if(!iso) return "—";
+    const [y,m,d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  }
+  function toast(title, msg){
+    const t = document.getElementById("toast");
+    document.getElementById("toastTitle").textContent = title;
+    document.getElementById("toastMsg").textContent = msg;
+    t.style.display = "block";
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(()=> t.style.display="none", 3200);
+  }
+
+  /** ---------- Seed ---------- **/
+  function seedConsultores(){
+    const baseDates = nextDaysISO(10); // 10 dias
+    const mkSlots = (consultorId) => {
+      // 2 períodos por dia: Manhã e Tarde
+      const slots = [];
+      baseDates.forEach((dt, i)=>{
+        ["Manhã","Tarde"].forEach((per)=>{
+          const id = `${consultorId}_${dt}_${per}`;
+          // simula alguns reservados
+          const reserved = (i%5===0 && per==="Tarde") || (i%7===0 && per==="Manhã");
+          slots.push({
+            id,
+            date: dt,
+            periodo: per,
+            state: reserved ? "R" : "L" // R reservado, L livre
+          });
+        });
+      });
+      return slots;
+    };
+
+    const list = [
+      { id:"c1", nome:"Renata Alves", senioridade:"Sênior", tipo:"CLT", parceiro:"Sankhya", slots: mkSlots("c1") },
+      { id:"c2", nome:"Kassius Lima", senioridade:"Pleno", tipo:"Terceiro", parceiro:"Parceiro Alfa", slots: mkSlots("c2") },
+      { id:"c3", nome:"Andreia Souza", senioridade:"Sênior", tipo:"Terceiro + CLT", parceiro:"Sankhya", slots: mkSlots("c3") },
+      { id:"c4", nome:"Leonardo Tega", senioridade:"Especialista", tipo:"CLT", parceiro:"Sankhya", slots: mkSlots("c4") },
+      { id:"c5", nome:"Isabel Vieira", senioridade:"Pleno", tipo:"Terceiro", parceiro:"Parceiro Beta", slots: mkSlots("c5") },
+    ];
+    return list;
+  }
+
+  function nextDaysISO(n){
+    const out = [];
+    const now = new Date();
+    for(let i=0;i<n;i++){
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      out.push(`${y}-${m}-${dd}`);
+    }
+    return out;
+  }
+
+  /** ---------- Tabs ---------- **/
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  const panes = ["tab1","tab2","tab3"].map(id=>document.getElementById(id));
+
+  function showTab(id){
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab===id));
+    panes.forEach(p => p.style.display = (p.id===id) ? "" : "none");
+    if(id==="tab2") renderTab2();
+    if(id==="tab3") renderTab3();
+    if(id==="tab1") renderTab1();
+  }
+  tabs.forEach(t => t.addEventListener("click", ()=> showTab(t.dataset.tab)));
+
+  /** ---------- TAB 1 ---------- **/
+  const el = (id)=> document.getElementById(id);
+
+  function renderPacks(){
+    const wrap = el("packChips");
+    wrap.innerHTML = "";
+    state.entrada.packs.forEach((p, idx)=>{
+      const c = document.createElement("div");
+      c.className = "chip" + (p.selected ? " on" : "");
+      c.textContent = p.nome;
+      c.title = p.id;
+      c.addEventListener("click", ()=>{
+        state.entrada.packs[idx].selected = !state.entrada.packs[idx].selected;
+        save();
+        renderPacks();
+      });
+      wrap.appendChild(c);
+    });
+  }
+
+  function renderProjetoKVs(){
+    const kvs = el("kvsProjeto");
+    kvs.innerHTML = "";
+    const items = [
+      ["FAP/Projeto", state.entrada.fap || "—"],
+      ["Cliente", state.entrada.cliente || "—"],
+      ["Origem", state.entrada.origem || "—"],
+      ["Tipo Recurso", state.entrada.tipoRecurso || "—"],
+      ["Início", formatDateBR(state.entrada.dtInicio)],
+      ["Fim", formatDateBR(state.entrada.dtFim)],
+      ["Packs selecionados", selectedPacks().map(p=>p.nome).join(", ") || "—"],
+      ["Reservas criadas", String(state.reservas.length)]
+    ];
+    items.forEach(([k,v])=>{
+      const d = document.createElement("div");
+      d.className="kv";
+      d.innerHTML = `<b>${k}</b><span>${escapeHtml(v)}</span>`;
+      kvs.appendChild(d);
+    });
+
+    el("pillProjeto").textContent = `Projeto: ${state.entrada.fap || "—"} • ${state.entrada.cliente || "—"}`;
+  }
+
+  function renderTab1(){
+    el("fap").value = state.entrada.fap;
+    el("cliente").value = state.entrada.cliente;
+    el("origem").value = state.entrada.origem;
+    el("tipoRecurso").value = state.entrada.tipoRecurso;
+    el("dtInicio").value = state.entrada.dtInicio;
+    el("dtFim").value = state.entrada.dtFim;
+    renderPacks();
+    renderProjetoKVs();
+    renderResumoKVs(); // atualiza também no tab3
+  }
+
+  el("btnSalvarEntrada").addEventListener("click", ()=>{
+    state.entrada.fap = el("fap").value.trim();
+    state.entrada.cliente = el("cliente").value.trim();
+    state.entrada.origem = el("origem").value;
+    state.entrada.tipoRecurso = el("tipoRecurso").value;
+    state.entrada.dtInicio = el("dtInicio").value;
+    state.entrada.dtFim = el("dtFim").value;
+
+    save();
+    renderProjetoKVs();
+    toast("Entrada salva", "Agora vá para a aba 2) Agenda & Reserva e selecione os slots.");
+    showTab("tab2");
+  });
+
+  /** ---------- TAB 2 ---------- **/
+  function selectedPacks(){ return state.entrada.packs.filter(p=>p.selected); }
+
+  function resetSelection(){
+    selected.consultorId = null;
+    selected.slotIds = [];
+    lastClickedIndex = null;
+  }
+
+  function currentConsultor(){
+    return state.consultores.find(c=>c.id===selected.consultorId) || null;
+  }
+
+  function setReserveBar(){
+    const count = selected.slotIds.length;
+    el("selCount").textContent = `${count} slot(s) selecionado(s)`;
+    el("btnReservarSel").disabled = (count===0);
+  }
+
+  function slotIndexById(consultor, slotId){
+    return consultor.slots.findIndex(s=>s.id===slotId);
+  }
+
+  function renderTab2(){
+    // Pills
+    el("pillProjeto").textContent = `Projeto: ${state.entrada.fap || "—"} • ${state.entrada.cliente || "—"}`;
+    el("pillFiltro").textContent = `Filtro: ${el("filtroRecursos").value}`;
+    // Render consultores
+    const container = el("consultoresContainer");
+    container.innerHTML = "";
+
+    const filtroTipo = el("filtroRecursos").value;
+    const q = el("buscarConsultor").value.trim().toLowerCase();
+
+    const list = state.consultores.filter(c=>{
+      const okTipo = (filtroTipo==="Todos") ? true : (c.tipo===filtroTipo);
+      const hay = (c.nome + " " + c.senioridade + " " + c.parceiro + " " + c.tipo).toLowerCase();
+      const okQ = q ? hay.includes(q) : true;
+      return okTipo && okQ;
+    });
+
+    if(list.length===0){
+      container.innerHTML = `<div class="empty"><b>Nenhum consultor encontrado</b><div style="margin-top:6px">Ajuste o filtro ou a busca.</div></div>`;
+      setReserveBar();
+      return;
+    }
+
+    list.forEach(consultor=>{
+      const box = document.createElement("div");
+      box.className = "consultant";
+
+      const top = document.createElement("div");
+      top.className = "top";
+      top.innerHTML = `
+        <div class="name">
+          ${escapeHtml(consultor.nome)}
+          <span class="badge">${escapeHtml(consultor.senioridade)}</span>
+          <span class="badge">${escapeHtml(consultor.tipo)}</span>
+          <span class="badge">${escapeHtml(consultor.parceiro)}</span>
+        </div>
+        <div class="hint">Clique em slots <b>L</b> para selecionar • <b>R</b> não seleciona</div>
+      `;
+      box.appendChild(top);
+
+      const slotsWrap = document.createElement("div");
+      slotsWrap.className = "slots";
+
+      consultor.slots.forEach((s, idx)=>{
+        const slot = document.createElement("div");
+        const isFree = s.state==="L";
+        slot.className = "slot " + (isFree ? "free" : "reserved") + (selected.slotIds.includes(s.id) ? " selected" : "");
+        slot.dataset.consultorId = consultor.id;
+        slot.dataset.slotId = s.id;
+        slot.dataset.idx = String(idx);
+
+        const st = isFree ? "L" : "R";
+        const periodPill = (s.periodo==="Manhã") ? `<span class="pill green">Manhã</span>` : `<span class="pill purple">Tarde</span>`;
+
+        slot.innerHTML = `
+          <div class="d">${formatDateBR(s.date)}</div>
+          <div class="p">${periodPill}</div>
+          <div class="state">${st}</div>
+        `;
+
+        slot.addEventListener("click", (ev)=>{
+          if(!isFree){
+            toast("Slot reservado (R)", "Este período já está reservado e não entra na seleção.");
+            return;
+          }
+          const cid = consultor.id;
+          const slotId = s.id;
+          const idxClicked = idx;
+
+          // Só pode selecionar slots do MESMO consultor
+          if(selected.consultorId && selected.consultorId !== cid){
+            toast("Seleção limitada", "Você só pode selecionar múltiplos slots no mesmo consultor. Limpe a seleção ou selecione no mesmo consultor.");
+            return;
+          }
+          if(!selected.consultorId) selected.consultorId = cid;
+
+          const isCtrl = ev.ctrlKey || ev.metaKey;
+          const isShift = ev.shiftKey;
+
+          // SHIFT: seleciona intervalo baseado no último clique
+          if(isShift && lastClickedIndex !== null){
+            const c = state.consultores.find(x=>x.id===cid);
+            const a = Math.min(lastClickedIndex, idxClicked);
+            const b = Math.max(lastClickedIndex, idxClicked);
+            const range = c.slots.slice(a, b+1).filter(x=>x.state==="L").map(x=>x.id);
+
+            // substitui seleção pelo intervalo (mais previsível)
+            selected.slotIds = Array.from(new Set([...selected.slotIds, ...range]));
+          }
+          // CTRL: toggle no item
+          else if(isCtrl){
+            if(selected.slotIds.includes(slotId)){
+              selected.slotIds = selected.slotIds.filter(x=>x!==slotId);
+            }else{
+              selected.slotIds = [...selected.slotIds, slotId];
+            }
+          }
+          // clique simples: limpa e seleciona apenas ele (se não estiver selecionado), ou remove se já estava
+          else{
+            if(selected.slotIds.length===1 && selected.slotIds[0]===slotId){
+              selected.slotIds = [];
+              selected.consultorId = null;
+              lastClickedIndex = null;
+            }else{
+              selected.slotIds = [slotId];
+            }
+          }
+
+          // se a seleção ficou vazia, zera consultorId
+          if(selected.slotIds.length===0){
+            selected.consultorId = null;
+            lastClickedIndex = null;
+          }else{
+            lastClickedIndex = idxClicked;
+          }
+
+          setReserveBar();
+          renderTab2();
+        });
+
+        slotsWrap.appendChild(slot);
+      });
+
+      box.appendChild(slotsWrap);
+      container.appendChild(box);
+    });
+
+    setReserveBar();
+  }
+
+  el("filtroRecursos").addEventListener("change", ()=>{
+    el("pillFiltro").textContent = `Filtro: ${el("filtroRecursos").value}`;
+    renderTab2();
+  });
+  el("buscarConsultor").addEventListener("input", ()=> renderTab2());
+
+  el("btnLimparSel").addEventListener("click", ()=>{
+    resetSelection();
+    setReserveBar();
+    renderTab2();
+  });
+
+  /** ---------- Modal Reserva ---------- **/
+  const modalBack = el("modalBack");
+  const modalPack = el("modalPack");
+  const modalEtapa = el("modalEtapa");
+  const modalModalidade = el("modalModalidade");
+  const kvsReserva = el("kvsReserva");
+  const modalObs = el("modalObs");
+
+  function openModal(){
+    // valida packs
+    const packs = selectedPacks();
+    if(packs.length===0){
+      toast("Sem pack selecionado", "Volte na aba 1 e selecione pelo menos 1 pack.");
+      showTab("tab1");
+      return;
+    }
+
+    // popula packs
+    modalPack.innerHTML = packs.map(p=>`<option value="${escapeAttr(p.id)}">${escapeHtml(p.nome)}</option>`).join("");
+    modalEtapa.value = "";
+    modalModalidade.value = "";
+    modalObs.value = "";
+
+    // preenche kvs com slots selecionados
+    const c = currentConsultor();
+    const slots = c ? c.slots.filter(s=>selected.slotIds.includes(s.id)) : [];
+    const dates = slots.map(s=>s.date);
+    const inicio = dates.length ? dates.slice().sort()[0] : "";
+    const fim = dates.length ? dates.slice().sort().reverse()[0] : "";
+
+    kvsReserva.innerHTML = "";
+    const items = [
+      ["FAP/Projeto", state.entrada.fap || "—"],
+      ["Cliente", state.entrada.cliente || "—"],
+      ["Consultor", c ? c.nome : "—"],
+      ["Qtde de slots", String(selected.slotIds.length)],
+      ["Início", inicio ? formatDateBR(inicio) : "—"],
+      ["Fim", fim ? formatDateBR(fim) : "—"],
+      ["Períodos", summarizePeriodos(slots)],
+      ["Packs disponíveis", packs.map(p=>p.nome).join(", ")]
+    ];
+    items.forEach(([k,v])=>{
+      const d = document.createElement("div");
+      d.className="kv";
+      d.innerHTML = `<b>${k}</b><span>${escapeHtml(v)}</span>`;
+      kvsReserva.appendChild(d);
+    });
+
+    modalBack.style.display="flex";
+  }
+
+  function closeModal(){
+    modalBack.style.display="none";
+  }
+
+  function summarizePeriodos(slots){
+    const m = slots.filter(s=>s.periodo==="Manhã").length;
+    const t = slots.filter(s=>s.periodo==="Tarde").length;
+    const parts = [];
+    if(m) parts.push(`Manhã: ${m}`);
+    if(t) parts.push(`Tarde: ${t}`);
+    return parts.join(" • ") || "—";
+  }
+
+  el("btnReservarSel").addEventListener("click", openModal);
+  el("btnFecharModal").addEventListener("click", closeModal);
+  el("btnCancelarReserva").addEventListener("click", closeModal);
+  modalBack.addEventListener("click", (e)=>{ if(e.target===modalBack) closeModal(); });
+
+  el("btnConfirmarReserva").addEventListener("click", ()=>{
+    const etapa = modalEtapa.value;
+    const modalidade = modalModalidade.value;
+    const packId = modalPack.value;
+    const pack = state.entrada.packs.find(p=>p.id===packId);
+    const obs = modalObs.value.trim();
+
+    if(!etapa){
+      toast("Etapa obrigatória", "Selecione a etapa antes de confirmar.");
+      return;
+    }
+    if(!modalidade){
+      toast("Modalidade obrigatória", "Selecione Remoto ou Presencial.");
+      return;
+    }
+    if(!pack){
+      toast("Pack inválido", "Selecione um pack válido.");
+      return;
+    }
+
+    const c = currentConsultor();
+    if(!c){
+      toast("Erro de seleção", "Nenhum consultor selecionado.");
+      return;
+    }
+
+    // cria reservas por slot selecionado (granular)
+    const chosenSlots = c.slots.filter(s=>selected.slotIds.includes(s.id) && s.state==="L");
+    if(chosenSlots.length===0){
+      toast("Nada para reservar", "Somente slots L (livres) podem ser reservados.");
+      closeModal();
+      return;
+    }
+
+    chosenSlots.forEach(s=>{
+      // marca slot como reservado no consultor
+      s.state = "R";
+
+      state.reservas.push({
+        id: uuid(),
+        fap: state.entrada.fap || "",
+        cliente: state.entrada.cliente || "",
+        packId: pack.id,
+        packNome: pack.nome,
+        etapa,
+        modalidade,
+        consultorId: c.id,
+        consultorNome: c.nome,
+        inicio: s.date,
+        fim: s.date,
+        periodo: s.periodo,
+        obs
+      });
+    });
+
+    save();
+    closeModal();
+    toast("Reservas confirmadas", `${chosenSlots.length} slot(s) reservado(s) para ${c.nome}.`);
+    resetSelection();
+    setReserveBar();
+    renderTab2();
+  });
+
+  /** ---------- TAB 3 ---------- **/
+  function renderResumoKVs(){
+    const kvs = el("kvsResumo");
+    if(!kvs) return;
+    kvs.innerHTML = "";
+    const items = [
+      ["FAP/Projeto", state.entrada.fap || "—"],
+      ["Cliente", state.entrada.cliente || "—"],
+      ["Packs selecionados", selectedPacks().map(p=>p.nome).join(", ") || "—"],
+      ["Total de reservas", String(state.reservas.length)],
+      ["Última atualização", new Date().toLocaleString("pt-BR")]
+    ];
+    items.forEach(([k,v])=>{
+      const d = document.createElement("div");
+      d.className="kv";
+      d.innerHTML = `<b>${k}</b><span>${escapeHtml(v)}</span>`;
+      kvs.appendChild(d);
+    });
+  }
+
+  function renderGridResumo(){
+    const wrap = el("gridResumoWrap");
+    const rows = state.reservas.slice().sort((a,b)=>{
+      // ordena por consultor, data, período
+      const k1 = (a.consultorNome + a.inicio + a.periodo);
+      const k2 = (b.consultorNome + b.inicio + b.periodo);
+      return k1.localeCompare(k2);
+    });
+
+    if(rows.length===0){
+      wrap.innerHTML = `<div class="empty"><b>Sem reservas</b><div style="margin-top:6px">Faça reservas na aba 2) Agenda & Reserva.</div></div>`;
+      return;
+    }
+
+    const html = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Etapa</th>
+            <th>Pack</th>
+            <th>Consultor</th>
+            <th>Data</th>
+            <th>Período</th>
+            <th>Remoto/Presencial</th>
+            <th>Obs.</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r=>{
+            const pillMod = r.modalidade==="Remoto" ? "pill purple" : "pill green";
+            const pillPer = r.periodo==="Manhã" ? "pill green" : "pill purple";
+            return `
+              <tr>
+                <td><span class="pill">${escapeHtml(r.etapa)}</span></td>
+                <td><span class="pill">${escapeHtml(r.packNome)}</span></td>
+                <td><b>${escapeHtml(r.consultorNome)}</b></td>
+                <td>${formatDateBR(r.inicio)}</td>
+                <td><span class="${pillPer}">${escapeHtml(r.periodo)}</span></td>
+                <td><span class="${pillMod}">${escapeHtml(r.modalidade)}</span></td>
+                <td style="max-width:240px; color:var(--muted)">${escapeHtml(r.obs || "—")}</td>
+                <td><button class="btn" data-del="${escapeAttr(r.id)}">Excluir</button></td>
+              </tr>
+            `;
+          }).join("")}
+        </tbody>
+      </table>
+    `;
+    wrap.innerHTML = html;
+
+    // bind deletes
+    wrap.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const id = btn.getAttribute("data-del");
+        deleteReserva(id);
+      });
+    });
+  }
+
+  function deleteReserva(reservaId){
+    const r = state.reservas.find(x=>x.id===reservaId);
+    if(!r) return;
+
+    // libera o slot correspondente (volta L)
+    const c = state.consultores.find(x=>x.id===r.consultorId);
+    if(c){
+      const slotId = `${c.id}_${r.inicio}_${r.periodo}`;
+      const s = c.slots.find(x=>x.id===slotId);
+      if(s) s.state = "L";
+    }
+
+    state.reservas = state.reservas.filter(x=>x.id!==reservaId);
+    save();
+    toast("Reserva excluída", "O slot foi liberado (L).");
+    renderTab3();
+  }
+
+  function renderTab3(){
+    renderResumoKVs();
+    renderGridResumo();
+  }
+
+  el("btnLimparResumo").addEventListener("click", ()=>{
+    // volta todos os slots para L e limpa reservas
+    state.consultores.forEach(c=>{
+      c.slots.forEach(s=>{
+        // volta a L, mas mantém um padrão inicial simples:
+        s.state = "L";
+      });
+    });
+    // reaplica uma “sujeira” inicial de reservados (para não ficar 100% livre)
+    const fresh = seedConsultores();
+    state.consultores.forEach((c, idx)=>{
+      c.slots.forEach((s, j)=>{
+        s.state = fresh[idx].slots[j].state;
+      });
+    });
+
+    state.reservas = [];
+    save();
+    toast("Resumo limpo", "Reservas apagadas e agenda resetada.");
+    renderTab3();
+    renderTab2();
+  });
+
+  /** ---------- Header actions ---------- **/
+  el("btnGoResumo").addEventListener("click", ()=> showTab("tab3"));
+
+  el("btnReset").addEventListener("click", ()=>{
+    localStorage.removeItem(LS_KEY);
+    toast("Reset concluído", "Recarregue a página (F5) para iniciar do zero.");
+  });
+
+  el("btnExport").addEventListener("click", ()=>{
+    const data = JSON.stringify(state, null, 2);
+    const blob = new Blob([data], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `export_mvp_alocacao_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast("Exportado", "Arquivo JSON baixado com sucesso.");
+  });
+
+  /** ---------- Util escape ---------- **/
+  function escapeHtml(str){
+    str = String(str ?? "");
+    return str.replace(/[&<>"']/g, s => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[s]));
+  }
+  function escapeAttr(str){
+    return escapeHtml(str).replace(/"/g, "&quot;");
+  }
+
+  /** ---------- Boot ---------- **/
+  renderTab1();
+
+})();
+</script>
+</body>
+</html>

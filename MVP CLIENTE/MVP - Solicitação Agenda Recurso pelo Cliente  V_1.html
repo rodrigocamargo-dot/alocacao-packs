@@ -3804,9 +3804,6 @@ function getPartnerRateByProf(partnerName, profShort){
 }
 
 function getValorHoraLabel(c){
-  const direct = getPartnerRateByProf(c?.partnerName, c?.profShort);
-  if(direct > 0) return formatBRL(direct);
-
   const packNeed = $$("inPack")?.value.trim() || "";
   let nivel = "";
   if(c.type === "CLT-DB"){
@@ -6500,4 +6497,5 @@ document.addEventListener("click", (e)=>{
 
 </body>
 </html>
+
 

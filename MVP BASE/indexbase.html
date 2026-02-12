@@ -688,7 +688,7 @@
             </div>
 
             <div id="priorityHint" class="hint" style="display:none; color:#f59e0b; font-weight:800">
-              Existem recursos com prioridade (CLT DB ou Terceiro Presencial) para esta janela.
+              Exisetm recursos com prioridade Recurso Delivery Center ou Homologado Presencial na unidade Slim da demanda) para essa agenda.
             </div>
 
             <div class="hint">
@@ -2478,13 +2478,17 @@ function buildDaysRange(dtIni, dtFim){
         return;
       }
 
-      const days = buildDaysRange(di, df);
+    const days = buildDaysRange(di, df);
 
     head.innerHTML = `<th style="min-width:240px">Consultor</th>`;
     days.forEach(d=>{
       const dd = String(d.getDate()).padStart(2,"0");
       const mm = String(d.getMonth()+1).padStart(2,"0");
-      head.innerHTML += `<th>${dd}/${mm}</th>`;
+      const weekDay = d
+        .toLocaleDateString("pt-BR", { weekday: "short" })
+        .replace(".", "")
+        .replace(/^\w/, c => c.toUpperCase());
+      head.innerHTML += `<th><div class="small muted">${weekDay}</div><div>${dd}/${mm}</div></th>`;
     });
 
     tbody.innerHTML = "";
@@ -2512,31 +2516,14 @@ function buildDaysRange(dtIni, dtFim){
       const tr = document.createElement("tr");
 
       const tdName = document.createElement("td");
-      const priorityMsg = (c.type === "CLT-DB" || c.type === "TERCEIRO-PRESENCIAL")
-        ? `<div class="sub" style="color:#f59e0b;font-weight:800">Recurso Prioritário</div>`
-        : "";
-      const cltMsg = c.type === "CLT-DB"
-        ? `<div class="sub" style="color:#22c55e;font-weight:800">Consultor CLT com disponibilidade para Base</div>`
-        : "";
-      const presMsg = c.type === "TERCEIRO-PRESENCIAL"
-        ? `<div class="sub" style="color:#22c55e;font-weight:800">Existe recurso presencial com agenda disponível</div>`
-        : "";
-      const typeLabel = c.type === "CLT-DB"
-        ? "RECURSO SANKHYA"
-        : c.type === "TERCEIRO-PRESENCIAL"
-          ? "HOMOLOGADO-PRESENCIAL FILIAL SLIM"
-          : c.type === "TERCEIRO"
-            ? "HOMOLOGADO"
-          : c.type;
+      const resourceKind = c.type === "CLT-DB" ? "Recurso Sankhya" : "Recurso Homologado";
+      const partnerLabel = c.partnerName === "CLT" ? "Delivery Center" : c.partnerName;
       tdName.innerHTML = `
         <div class="meta">
-        ${priorityMsg}
-        <div><b>${c.name}</b> <span class="tag">${typeLabel}</span></div>
-        <div class="sub">Senioridade: <b>${c.seniority}</b> • Ociosidade: <b>${c.idlePct}%</b></div>
-        <div class="sub">Parceiro: <b>${c.partnerName}</b></div>
-        <div class="sub">Nível de conhecimento (Pack): <b>${getKnowledgeLabel(c)}</b></div>
-        ${cltMsg}
-        ${presMsg}
+        <div><b>${c.name}</b> <span class="tag">${resourceKind}</span></div>
+        <div class="sub">Senioridade cadastrada: <b>${c.seniority}</b> • Ociosidade (% período selecionado): <b>${c.idlePct}%</b></div>
+        <div class="sub">Parceiro: <b>${partnerLabel}</b></div>
+        <div class="sub">Proficiência do recurso: <b>${getKnowledgeLabel(c)}</b></div>
         </div>
       `;
       tr.appendChild(tdName);
