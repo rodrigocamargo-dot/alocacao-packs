@@ -486,7 +486,11 @@ function toggleStepsByPacks(){
       if(pageId === "p2"){ syncP2(); renderAgenda();
       renderStepsP1(); }
       if(pageId === "p3"){ renderResumo(); }
-      if(pageId === "p4"){ guardP4(); if(sentToValidation[state.fap]){ renderLeaderResList(); renderP4ThirdPartyAlerts(); } }
+      if(pageId === "p4"){
+        guardP4();
+        if(typeof renderP4ObsAlert === "function") renderP4ObsAlert();
+        if(sentToValidation[state.fap]){ renderLeaderResList(); renderP4ThirdPartyAlerts(); }
+      }
       if(pageId === "p5"){ guardP5(); if(sentToValidation[state.fap]){ renderValidated(); } }
       window.scrollTo({top:0, behavior:"smooth"});
     }
@@ -1843,20 +1847,7 @@ if(btnEnviar){
       const elPMO = document.getElementById("p4GestorPMO"); if(elPMO) elPMO.textContent = state.gestorPMO || "—";
       const valComment = document.getElementById("p4ValidationComment");
       if(valComment) valComment.value = state.validationComment || "";
-      const obsWrap = document.getElementById("p4ObsWrap");
-      const obsText = document.getElementById("p4ObsText");
-      if(obsWrap && obsText){
-        const t = (state.obs || "").trim();
-        if(t){
-          obsText.textContent = t;
-          obsWrap.style.display = "block";
-        }else{
-          obsWrap.style.display = "none";
-        }
-      }
-
-
-
+      renderP4ObsAlert();
 
       const byId = Object.fromEntries(consultoresBase.map(c => [c.codusu, c]));
       const logs = reservas
@@ -1916,6 +1907,43 @@ if(btnEnviar){
         `;
         box.appendChild(div);
       });
+    }
+
+    function getReprogramReasonByFap(fap){
+      if(!fap) return null;
+      const key = String(fap).trim();
+      if(reprogramReasonsByFap[key]) return reprogramReasonsByFap[key];
+      const keyLower = key.toLowerCase();
+      const foundKey = Object.keys(reprogramReasonsByFap).find((k) => String(k).trim().toLowerCase() === keyLower);
+      return foundKey ? reprogramReasonsByFap[foundKey] : null;
+    }
+
+    function renderP4ObsAlert(){
+      const obsWrap = document.getElementById("p4ObsWrap");
+      const obsText = document.getElementById("p4ObsText");
+      if(obsWrap && obsText){
+        const esc = (v) => String(v || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+        const obsFromState = (state.obs || "").trim();
+        const obsFromFap = (perFapData[state.fap]?.obs || "").trim();
+        const baseObs = obsFromState || obsFromFap;
+        const reprog = getReprogramReasonByFap(state.fap);
+        const reprogObs = reprog
+          ? `Reprogramação: ${reprog.reason}${reprog.detail ? ` - ${reprog.detail}` : ""}`
+          : "";
+        if(baseObs || reprogObs){
+          const baseHtml = baseObs ? `<div>${esc(baseObs)}</div>` : "";
+          const reprogHtml = reprogObs ? `<div class="reprogHighlight">${esc(reprogObs)}</div>` : "";
+          obsText.innerHTML = `${baseHtml}${reprogHtml}`;
+          obsWrap.style.display = "block";
+        }else{
+          obsWrap.style.display = "none";
+        }
+      }
     }
 
 
