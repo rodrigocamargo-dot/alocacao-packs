@@ -1473,6 +1473,8 @@ body.intro-active{overflow:hidden}
             <div class="actions" style="margin-top:12px">
               <button class="primary" id="btnResumoIrValidacao" style="width:100%">Enviar para Validação da Liderança</button>
               <button id="btnResumoVoltar" style="min-width:240px">← Voltar para Alocação</button>
+              <button id="btnResumoMarcarTodos" style="min-width:240px">Marcar todos</button>
+              <button id="btnResumoDesmarcarTodos" style="min-width:240px">Desmarcar todos</button>
               <button class="danger" id="btnResumoLimpar" style="min-width:240px">Limpar reservas</button>
             </div>
 
@@ -1490,6 +1492,7 @@ body.intro-active{overflow:hidden}
               <table>
                 <thead>
                   <tr>
+                    <th>Flag</th>
                     <th>SVR</th>
                     <th>Parceiro informado</th>
                     <th>Solicitação</th>
@@ -2258,6 +2261,8 @@ const state = {
   homologadosDirty: false,
   orderPrompted: false,
   swapPartnerIndex: 0,
+  resumoSelectedRows: new Set(),
+  resumoRowMap: {},
   consultants: [],
   reservations: [],
   selected: { consultantId: null, slotKeys: new Set(), lastIndex: null },
@@ -4353,22 +4358,24 @@ function getReservationStartDate(r){
   return min;
 }
 
-function releaseReservationSlots(r, opts = {}){
+function releaseReservationSlotsPartial(r, slotsToRelease, opts = {}){
   if(!r) return;
+  const slots = Array.isArray(slotsToRelease) ? slotsToRelease : [];
+  if(slots.length === 0) return;
   const restorePrioritarioToDb = opts.restorePrioritarioToDb === true;
   const isPrioritarioSankhya = r.consultant?.type && String(r.consultant.type).startsWith("CLT");
   const targetStatus = (restorePrioritarioToDb && isPrioritarioSankhya) ? "DB" : "L";
 
   const c = state.consultants.find(x=>x.id===r.consultant?.id) || state.consultants.find(x=>x.name===r.consultant?.name);
   if(c && Array.isArray(c.schedule)){
-    r.slots.forEach(s=>{
+    slots.forEach(s=>{
       const slot = c.schedule.find(x=>x.day===s.day && x.period===s.period);
       if(slot) slot.status = targetStatus;
     });
   }
   if(r.consultant?.type && String(r.consultant.type).startsWith("CLT")){
     const mins = getCltRedeParams().minutosVisivelAposLivre;
-    r.slots.forEach(s=>{
+    slots.forEach(s=>{
       const key = `${r.consultant.id}|${s.day}|${s.period}`;
       if(state.cltAgenda){
         state.cltAgenda[key] = targetStatus;
@@ -4382,6 +4389,10 @@ function releaseReservationSlots(r, opts = {}){
       }
     });
   }
+}
+
+function releaseReservationSlots(r, opts = {}){
+  releaseReservationSlotsPartial(r, r?.slots || [], opts);
 }
 
 function renderTerceiroSelecionados(order, existingMap){
@@ -4849,6 +4860,8 @@ function clearAllReservations(){
   // para recursos prioritários Sankhya, restaura em DR (interno DB)
   state.reservations.forEach(r => releaseReservationSlots(r, { restorePrioritarioToDb: true }));
   state.reservations = [];
+  state.resumoSelectedRows.clear();
+  state.resumoRowMap = {};
   state.selected.slotKeys.clear();
   state.selected.lastIndex = null;
   state.selected.consultantId = null;
@@ -4860,12 +4873,68 @@ function clearAllReservations(){
   toast("Reservas limpas", "Todas as reservas foram removidas.", "info", 2400);
 }
 
+function clearReservationRows(rowKeys){
+  const set = new Set((rowKeys || []).filter(Boolean));
+  if(set.size === 0) return 0;
+  const rowMap = state.resumoRowMap || {};
+  const parseRowKey = (rowKey) => {
+    try{
+      const raw = decodeURIComponent(String(rowKey || ""));
+      const parts = raw.split("|");
+      const resId = parts[0] || "";
+      const day = parts[1] || "";
+      const periodsRaw = parts[2] || "";
+      const periods = periodsRaw ? periodsRaw.split("+").filter(Boolean) : [];
+      if(!resId || !day || periods.length === 0) return null;
+      return {
+        resId,
+        slots: periods.map(period => ({ day, period }))
+      };
+    } catch {
+      return null;
+    }
+  };
+  const byReservation = new Map();
+  set.forEach(k => {
+    const info = rowMap[k] || parseRowKey(k);
+    if(!info || !info.resId || !Array.isArray(info.slots)) return;
+    const list = byReservation.get(info.resId) || [];
+    info.slots.forEach(s => list.push({ day:s.day, period:s.period }));
+    byReservation.set(info.resId, list);
+  });
+  if(byReservation.size === 0) return 0;
+
+  let removedRows = 0;
+  state.reservations = state.reservations.filter(r => {
+    const list = byReservation.get(r.id);
+    if(!list || list.length === 0) return true;
+    const uniq = new Map();
+    list.forEach(s => { uniq.set(`${s.day}|${s.period}`, s); });
+    const toRelease = Array.from(uniq.values());
+    releaseReservationSlotsPartial(r, toRelease, { restorePrioritarioToDb: true });
+    const releaseSet = new Set(toRelease.map(s => `${s.day}|${s.period}`));
+    const before = Array.isArray(r.slots) ? r.slots.length : 0;
+    r.slots = (r.slots || []).filter(s => !releaseSet.has(`${s.day}|${s.period}`));
+    const after = r.slots.length;
+    removedRows += Math.max(0, before - after);
+    return after > 0;
+  });
+  state.resumoSelectedRows = new Set(Array.from(state.resumoSelectedRows).filter(k => !set.has(k)));
+  saveState();
+  renderFila();
+  renderAgenda();
+  renderResumo();
+  renderValidation();
+  return removedRows;
+}
+
 function renderResumo(){
   const tbody = $$("tbodyResumo");
   const empty = $$("resumoEmpty");
   if(!tbody) return;
 
   tbody.innerHTML = "";
+  state.resumoRowMap = {};
 
   const listToSend = state.reservations.filter(r => r.sentToTower !== true);
   const totalReq = listToSend.length;
@@ -4873,13 +4942,19 @@ function renderResumo(){
 
   const kTurnos = $$("kResTurnos");
   const kReq = $$("kResReq");
+  const btnMarcarTodos = $$("btnResumoMarcarTodos");
+  const btnDesmarcarTodos = $$("btnResumoDesmarcarTodos");
   if(kTurnos) kTurnos.textContent = String(totalTurnos);
   if(kReq) kReq.textContent = String(totalReq);
+  if(btnMarcarTodos) btnMarcarTodos.disabled = totalReq === 0;
+  if(btnDesmarcarTodos) btnDesmarcarTodos.disabled = totalReq === 0;
 
   if(totalReq === 0){
+    state.resumoSelectedRows.clear();
+    state.resumoRowMap = {};
     if(empty) empty.style.display = "block";
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="7" class="muted">—</td>`;
+    tr.innerHTML = `<td colspan="16" class="muted">—</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -4918,7 +4993,14 @@ function renderResumo(){
         const horas = periods.length * 4;
         const total = valorHora > 0 ? (horas * valorHora) : 0;
         const d = dayKeyRaw !== "—" ? fmtDate(dayKeyRaw) : "—";
+        const uniqPeriods = Array.from(new Set(periods.map(p => p || "—")));
+        const rowKey = encodeURIComponent(`${r.id}|${dayKeyRaw}|${uniqPeriods.sort().join("+")}`);
+        state.resumoRowMap[rowKey] = {
+          resId: r.id,
+          slots: uniqPeriods.filter(p => p !== "—").map(p => ({ day: dayKeyRaw, period: p }))
+        };
         rows.push({
+          rowKey,
           svr: r.svr || "SVR-—",
           parceiroInf,
           solicitacao,
@@ -4942,7 +5024,9 @@ function renderResumo(){
     .sort((a,b)=> a.ini.localeCompare(b.ini))
     .forEach(x=>{
       const tr = document.createElement("tr");
+      const checked = state.resumoSelectedRows.has(x.rowKey) ? "checked" : "";
       tr.innerHTML = `
+        <td><input type="checkbox" class="resumo-flag" data-row-key="${x.rowKey}" ${checked} /></td>
         <td>${escapeHtml(x.svr)}</td>
         <td>${escapeHtml(x.parceiroInf)}</td>
         <td>${escapeHtml(x.solicitacao)}</td>
@@ -4961,6 +5045,15 @@ function renderResumo(){
       `;
       tbody.appendChild(tr);
     });
+
+  tbody.querySelectorAll(".resumo-flag").forEach(el => {
+    el.addEventListener("change", () => {
+      const key = el.getAttribute("data-row-key");
+      if(!key) return;
+      if(el.checked) state.resumoSelectedRows.add(key);
+      else state.resumoSelectedRows.delete(key);
+    });
+  });
 }
 
 function getAllProficiencias(){
@@ -5900,8 +5993,37 @@ $$("btnResumoVoltar")?.addEventListener("click", ()=>{
   renderFila();
   renderAgenda();
 });
+$$("btnResumoMarcarTodos")?.addEventListener("click", ()=>{
+  const flags = Array.from(document.querySelectorAll("#tbodyResumo .resumo-flag"));
+  if(flags.length === 0) return;
+  flags.forEach(f => {
+    const key = f.getAttribute("data-row-key");
+    if(!key) return;
+    f.checked = true;
+    state.resumoSelectedRows.add(key);
+  });
+  renderResumo();
+});
+$$("btnResumoDesmarcarTodos")?.addEventListener("click", ()=>{
+  state.resumoSelectedRows.clear();
+  renderResumo();
+});
 $$("btnResumoLimpar")?.addEventListener("click", ()=>{
   if(state.reservations.length === 0){ toast("Sem reservas", "Não há reservas para limpar.", "warn", 2200); return; }
+  const selected = Array.from(state.resumoSelectedRows);
+  if(selected.length > 0){
+    if(!confirm(`Tem certeza que deseja limpar ${selected.length} linha(s) selecionada(s)?`)) return;
+    // feedback imediato na UI para linhas selecionadas
+    selected.forEach(key => {
+      const el = document.querySelector(`#tbodyResumo .resumo-flag[data-row-key="${key}"]`);
+      const tr = el ? el.closest("tr") : null;
+      if(tr) tr.remove();
+    });
+    const removed = clearReservationRows(selected);
+    renderResumo();
+    if(removed > 0) toast("Reservas limpas", `${removed} linha(s) selecionada(s) removida(s).`, "info", 2400);
+    return;
+  }
   if(!confirm("Tem certeza que deseja limpar todas as reservas?")) return;
   clearAllReservations();
 });
