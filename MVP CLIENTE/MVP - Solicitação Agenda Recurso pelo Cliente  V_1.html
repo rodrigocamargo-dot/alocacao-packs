@@ -3951,6 +3951,28 @@ function getPartnerRateByProf(partnerName, profShort){
   return value > 0 ? value : 0;
 }
 
+function getHomologadoFromFilaConsultant(c){
+  if(!c) return null;
+  if(c.partnerId){
+    const byId = state.homologados.find(h => h.id === c.partnerId);
+    if(byId) return byId;
+  }
+  if(Number.isFinite(c.partnerOrder) && c.partnerOrder > 0){
+    const byOrder = state.homologados.find(h => h.orderRank === c.partnerOrder);
+    if(byOrder) return byOrder;
+  }
+  if(c.partnerName){
+    const byName = state.homologados.find(h => String(h.name || "").trim().toLowerCase() === String(c.partnerName || "").trim().toLowerCase());
+    if(byName) return byName;
+  }
+  const ordered = getOrderedHomologados();
+  if(ordered.length){
+    const idx = Number.isFinite(state.currentPartnerIndex) ? state.currentPartnerIndex : 0;
+    return ordered[idx] || ordered[0];
+  }
+  return null;
+}
+
 function getCltRateByProf(cltId, profShort){
   const prof = normalizeProfShortLabel(profShort);
   if(!cltId || !prof) return 0;
@@ -3962,12 +3984,27 @@ function getCltRateByProf(cltId, profShort){
 }
 
 function getValorCompraRecursoValue(c){
-  const profShort = normalizeProfShortLabel(c?.profShort || getKnowledgeLabel(c));
-  if(!profShort || profShort === "—") return 0;
-  if(String(c?.type || "").startsWith("CLT")){
-    return getCltRateByProf(c?.id || "", profShort);
+  // Regra: usa a proficiencia exibida na linha e o valor cadastrado no parceiro homologado da fila.
+  let profShort = normalizeProfShortLabel(getKnowledgeLabel(c) || c?.profShort || "");
+  if(!profShort || profShort === "—"){
+    const profFila = $$("inFiltroSenioridade")?.value || "";
+    if(profFila && profFila !== "ALL"){
+      profShort = normalizeProfShortLabel(profFila);
+    }
   }
-  return getPartnerRateByProf(c?.partnerName || "", profShort);
+  if(!profShort || profShort === "—" || !PROF_LABELS.includes(profShort)) return 0;
+  const partner = getHomologadoFromFilaConsultant(c);
+  if(!partner) return 0;
+  const rates = buildPartnerRateMap(partner.valorHoraByProf, Number(partner.valorHora) || 0);
+  const direct = Number(rates[profShort]) || 0;
+  if(direct > 0) return direct;
+  const profFila = normalizeProfShortLabel($$("inFiltroSenioridade")?.value || "");
+  if(profFila && profFila !== "ALL" && PROF_LABELS.includes(profFila)){
+    const byFila = Number(rates[profFila]) || 0;
+    if(byFila > 0) return byFila;
+  }
+  const fallback = PROF_LABELS.map(x => Number(rates[x]) || 0).find(v => v > 0) || 0;
+  return fallback;
 }
 
 function getValorCompraRecursoLabel(c){
