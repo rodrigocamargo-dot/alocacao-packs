@@ -3365,13 +3365,16 @@ function buildDaysRange(dtIni, dtFim){
         const chip = document.createElement("div");
         const statusClass = isCltPrioritario ? (isDr ? "DB" : "R") : (slot.status === "R" ? "R" : "L");
         chip.className = `aChip ${statusClass} ${isSelected ? "sel" : ""}`;
-        chip.title = slot.label + (isSelectable ? " (Disponível)" : " (Indisponível)");
+        const statusTitle = isCltPrioritario
+          ? (isDr ? " (Disponível)" : (slot.status === "R" ? " (Reservado)" : " (Indisponível)"))
+          : (isSelectable ? " (Disponível)" : " (Indisponível)");
+        chip.title = slot.label + statusTitle;
         chip.dataset.consultantId = c.id;
         chip.dataset.slotKey = slot.key;
         chip.dataset.index = slot.index;
 
         const statusLabel = isCltPrioritario
-          ? (isDr ? "DR" : "Indisponível")
+          ? (isDr ? "DR" : (slot.status === "R" ? "R" : "Indisponível"))
           : (slot.status === "DB" ? "DR" : slot.status);
         chip.innerHTML = `<span>${per}</span><small>${statusLabel}</small>`;
 
@@ -4350,22 +4353,32 @@ function getReservationStartDate(r){
   return min;
 }
 
-function releaseReservationSlots(r){
+function releaseReservationSlots(r, opts = {}){
   if(!r) return;
-  const c = state.consultants.find(x=>x.id===r.consultant?.id);
+  const restorePrioritarioToDb = opts.restorePrioritarioToDb === true;
+  const isPrioritarioSankhya = r.consultant?.type && String(r.consultant.type).startsWith("CLT");
+  const targetStatus = (restorePrioritarioToDb && isPrioritarioSankhya) ? "DB" : "L";
+
+  const c = state.consultants.find(x=>x.id===r.consultant?.id) || state.consultants.find(x=>x.name===r.consultant?.name);
   if(c && Array.isArray(c.schedule)){
     r.slots.forEach(s=>{
       const slot = c.schedule.find(x=>x.day===s.day && x.period===s.period);
-      if(slot) slot.status = "L";
+      if(slot) slot.status = targetStatus;
     });
   }
   if(r.consultant?.type && String(r.consultant.type).startsWith("CLT")){
     const mins = getCltRedeParams().minutosVisivelAposLivre;
     r.slots.forEach(s=>{
       const key = `${r.consultant.id}|${s.day}|${s.period}`;
-      if(state.cltAgenda && key in state.cltAgenda){
-        state.cltAgenda[key] = "L";
+      if(state.cltAgenda){
+        state.cltAgenda[key] = targetStatus;
+      }
+      if(targetStatus === "L"){
         state.cltAgendaLivreUntil[key] = Date.now() + (mins * 60000);
+      } else {
+        if(state.cltAgendaLivreUntil && key in state.cltAgendaLivreUntil){
+          delete state.cltAgendaLivreUntil[key];
+        }
       }
     });
   }
@@ -4827,12 +4840,14 @@ function findClientByCode(code){
 
 
 function clearAllReservations(){
-  // volta slots "R" para "L"
+  // volta slots "R" para "L" por segurança
   state.consultants.forEach(c=>{
     c.schedule.forEach(s=>{
       if(s.status === "R") s.status = "L";
     });
   });
+  // para recursos prioritários Sankhya, restaura em DR (interno DB)
+  state.reservations.forEach(r => releaseReservationSlots(r, { restorePrioritarioToDb: true }));
   state.reservations = [];
   state.selected.slotKeys.clear();
   state.selected.lastIndex = null;
