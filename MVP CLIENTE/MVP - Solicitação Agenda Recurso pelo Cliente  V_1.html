@@ -687,11 +687,11 @@ body.intro-active{overflow:hidden}
         <div class="tab" data-tab="resumo">Resumo da sua Solicitação</div>
         <div class="tab" data-tab="acompanhamento">Status de Suas Solicitações</div>
         <div class="tab-break"></div>
-        <div class="tab" data-tab="validacao">Validação Torre</div>
+        <div class="tab" data-tab="validacao">Validação Liderança</div>
         <div class="tab" data-tab="clt">Cadastro Recurso Sankhya</div>
         <div class="tab" data-tab="gestao">Parceiros Homologados</div>
         <div class="tab" data-tab="terceiros">Cadastro Recursos Homologados</div>
-        <div class="tab" data-tab="clt-disponibilizar">Disponibilizar Recurso Sankhya para Base</div>
+        <div class="tab" data-tab="clt-disponibilizar">Disponibilizar recursos Sankhya Rede</div>
         <div class="tab" data-tab="valor-hora">Valor hora Vendida</div>
         <div class="tab" data-tab="chamado-pack-ativos">PACKS ATIVOS X RECURSOS</div>
       </div>
@@ -1349,7 +1349,7 @@ body.intro-active{overflow:hidden}
       <div class="grid" style="grid-template-columns: 420px 1fr; margin-top:14px;">
         <div class="card">
           <div class="content">
-            <h2>Disponibilizar Recurso Sankhya para Base</h2>
+            <h2>Disponibilizar Recurso Sankhya para Rede</h2>
 
             <div class="row">
               <div>
@@ -1466,7 +1466,7 @@ body.intro-active{overflow:hidden}
             </div>
 
             <div class="actions" style="margin-top:12px">
-              <button class="primary" id="btnResumoIrValidacao" style="width:100%">Enviar para Validação da Torre →</button>
+              <button class="primary" id="btnResumoIrValidacao" style="width:100%">Enviar para Validação da Liderança</button>
               <button id="btnResumoVoltar" style="min-width:240px">← Voltar para Alocação</button>
               <button class="danger" id="btnResumoLimpar" style="min-width:240px">Limpar reservas</button>
             </div>
@@ -1517,7 +1517,7 @@ body.intro-active{overflow:hidden}
     <section id="tab-validacao" class="hidden">
       <div class="card">
           <div class="content">
-            <h2>Validação da Torre – Consultores</h2>
+            <h2>Validação da Liderança – Consultores</h2>
 
           <div class="toolbar">
             <div class="chip">Pendentes: <span id="kPend">0</span></div>
@@ -1649,7 +1649,7 @@ body.intro-active{overflow:hidden}
           </div>
 
           <div style="margin-top:12px" class="small muted">
-            Ao confirmar, os slots viram <b>R</b> e a demanda entra em <b>Validação da Torre</b>.
+            Ao confirmar, os slots viram <b>R</b> e a demanda entra em <b>Validação da Liderança</b>.
           </div>
         </div>
       </div>
@@ -1795,7 +1795,7 @@ body.intro-active{overflow:hidden}
 <div class="modal-backdrop" id="cltReserveBackdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="hd">
-      <strong>Disponibilizar Agenda Recurso Sankhya para Base</strong>
+      <strong>Disponibilizar Agenda Recurso Sankhya para Rede</strong>
       <button id="btnCloseCltReserve">Fechar</button>
     </div>
     <div class="bd">
@@ -3654,7 +3654,7 @@ function confirmReserva(){
 
   saveState();
   showTab("resumo");
-  toast("Reserva criada", "Reserva enviada para Validação da Torre.", "info", 2600);
+  toast("Reserva criada", "Reserva enviada para Validação da Liderança.", "info", 2600);
 }
 
 function renderClientes(){
