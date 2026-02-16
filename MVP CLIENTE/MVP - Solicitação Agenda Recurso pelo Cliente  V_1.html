@@ -693,6 +693,7 @@ body.intro-active{overflow:hidden}
         <div class="tab" data-tab="terceiros">Cadastro Recursos Homologados</div>
         <div class="tab" data-tab="clt-disponibilizar">Disponibilizar Recurso Sankhya para Base</div>
         <div class="tab" data-tab="valor-hora">Valor hora Vendida</div>
+        <div class="tab" data-tab="chamado-pack-ativos">PACKS ATIVOS X RECURSOS</div>
       </div>
     </div>
   </div>
@@ -708,7 +709,7 @@ body.intro-active{overflow:hidden}
           <div class="content">
             <h2>Entrada da Demanda</h2>
 
-            <div class="row">
+            <div class="row" id="demRowCodOrigem">
               <div>
                 <label>Código do Parceiro</label>
                 <input id="inCodCliente" placeholder="Ex: 001234" />
@@ -734,23 +735,23 @@ body.intro-active{overflow:hidden}
               </div>
             </div>
 
-            <div style="margin-top:10px">
+            <div style="margin-top:10px" id="demRowNomeParceiro">
               <label>Nome do Parceiro</label>
               <input id="inNomeCliente" placeholder="Ex: Cliente XYZ" />
             </div>
 
-            <div style="margin-top:10px">
+            <div style="margin-top:10px" id="demRowFilial">
               <label>Filial Slim</label>
               <input id="inFilial" placeholder="Ex: Filial Belo Horizonte" />
             </div>
 
-            <div style="margin-top:10px">
+            <div style="margin-top:10px" id="demRowAnalista">
                 <label>Nome Usuário Solicitante</label>
               <input id="inAnalista" placeholder="Ex: Ana Flávia" />
               <div class="small muted" style="margin-top:6px">Irá trazer sempre o usuário logado.</div>
             </div>
 
-            <div class="row" style="margin-top:10px">
+            <div class="row" style="margin-top:10px" id="demRowContato">
               <div>
                 <label>Telefone contato do solicitante</label>
                 <input id="inTelefoneContato" placeholder="Ex: (11) 98888-7777" />
@@ -761,12 +762,12 @@ body.intro-active{overflow:hidden}
               </div>
             </div>
 
-            <div style="margin-top:10px">
+            <div style="margin-top:10px" id="demRowLinkReuniao">
               <label>Link da reunião (se remoto)</label>
               <input id="inLinkReuniao" placeholder="Ex: https://meet.google.com/abc-defg-hij" />
             </div>
 
-            <div class="row" style="margin-top:10px">
+            <div class="row" style="margin-top:10px" id="demRowGerentes">
               <div>
                 <label>Gerente de Relacionamento</label>
                 <input id="inGerRel" placeholder="Ex: João Silva" />
@@ -809,7 +810,7 @@ body.intro-active{overflow:hidden}
               </select>
             </div>
 
-            <div style="margin-top:10px">
+            <div style="margin-top:10px" id="demRowDetalhe">
               <label>Detalhamento da Demanda</label>
               <textarea id="inDetalhe" placeholder="Descreva o escopo, prioridade e observações..."></textarea>
             </div>
@@ -854,7 +855,7 @@ body.intro-active{overflow:hidden}
             </div>
 
             <div id="priorityHint" class="hint" style="display:none; color:#f59e0b; font-weight:800">
-              Existem recursos com prioridade (CLT DB ou Terceiro Presencial) para esta janela.
+              Existem Recusos com Prioridade de Locação (Recurso Sankhya ou Parceiro Homologado) para seleção nesta Agenda.
             </div>
 
             <div class="hint">
@@ -937,6 +938,22 @@ body.intro-active{overflow:hidden}
               <div>
                 <label>Nome do Parceiro</label>
                 <input id="hNome" placeholder="Ex: Parceiro Alpha" />
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:10px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <input id="hIsBp" type="checkbox" />
+                <label for="hIsBp" style="margin:0">Parceiro BP</label>
+              </div>
+              <div id="hBpBaseWrap" style="display:none">
+                <label>Base BP</label>
+                <select id="hBpBase">
+                  <option value="CURITIBA">BP CURITIBA</option>
+                  <option value="PAULISTA">BP PAULISTA</option>
+                  <option value="RECIFE">BP RECIFE</option>
+                  <option value="RIO">BP RIO</option>
+                </select>
               </div>
             </div>
 
@@ -1877,6 +1894,47 @@ const DEFAULT_HOMOLOGADOS = [
 ];
 
 const PROF_LABELS = ["Executor","Autônomo","Proficiente","Referencia"];
+const BP_BASES = ["CURITIBA","PAULISTA","RECIFE","RIO"];
+
+function normalizeBpBaseName(value){
+  const raw = String(value || "").trim().toUpperCase();
+  if(BP_BASES.includes(raw)) return raw;
+  return "";
+}
+
+function getBpPartnerName(base){
+  const norm = normalizeBpBaseName(base) || "CURITIBA";
+  return `BP ${norm}`;
+}
+
+function detectBpBaseFromName(name){
+  const raw = String(name || "").trim().toUpperCase();
+  for(const base of BP_BASES){
+    if(raw === `BP ${base}`) return base;
+  }
+  return "";
+}
+
+function isBpHomologado(partner){
+  if(!partner) return false;
+  if(partner.isBp === true) return true;
+  const raw = String(partner.name || "").trim().toUpperCase();
+  return raw === "BP" || raw.startsWith("BP ");
+}
+
+function enforceBpOrderAtEnd(){
+  const nonBp = state.homologados
+    .filter(p => !isBpHomologado(p))
+    .filter(p => Number.isFinite(p.orderRank));
+  let nextRank = nonBp.length ? Math.max(...nonBp.map(p => p.orderRank)) + 1 : 1;
+  state.homologados
+    .filter(p => isBpHomologado(p))
+    .slice()
+    .sort((a,b)=> (a.name || "").localeCompare(b.name || ""))
+    .forEach(p => {
+      p.orderRank = nextRank++;
+    });
+}
 
 function emptyValorHoraByProf(){
   return {
@@ -2131,6 +2189,8 @@ const state = {
     id: crypto.randomUUID(),
     code: h.code || null,
     name: h.name,
+    isBp: h.isBp === true,
+    bpBase: normalizeBpBaseName(h.bpBase || detectBpBaseFromName(h.name || "")),
     resources: h.resources || 0,
     months: h.months || 0,
     valorHora: Number(h.valorHora) || 0,
@@ -2365,6 +2425,8 @@ function normalizeLoaded(data){
       id: h.id || crypto.randomUUID(),
       code: h.code || null,
       name: h.name || "Parceiro",
+      isBp: h.isBp === true || String(h.name || "").trim().toUpperCase().startsWith("BP"),
+      bpBase: normalizeBpBaseName(h.bpBase || detectBpBaseFromName(h.name || "")),
       resources: Number(h.resources) || 0,
       months: Number(h.months) || 0,
       valorHora: Number(h.valorHora) || 0,
@@ -2372,6 +2434,7 @@ function normalizeLoaded(data){
       inicio: h.inicio || "",
       orderRank: Number.isFinite(h.orderRank) ? h.orderRank : null
     }));
+    enforceBpOrderAtEnd();
   }
 
   if(Array.isArray(data.terceiros)){
@@ -2526,25 +2589,49 @@ function parseBRL(raw){
   return Number(digits) / 100;
 }
 
+function isPackAtivosMode(){
+  const active = document.querySelector(".tab.active");
+  return active?.dataset?.tab === "chamado-pack-ativos";
+}
+
+function updatePackAtivosDemandaView(tab){
+  const isPack = tab === "chamado-pack-ativos";
+  const ids = [
+    "demRowCodOrigem",
+    "osRow",
+    "demRowNomeParceiro",
+    "demRowFilial",
+    "demRowAnalista",
+    "demRowContato",
+    "demRowLinkReuniao",
+    "demRowGerentes",
+    "demRowDetalhe"
+  ];
+  ids.forEach(id => {
+    const el = $$(id);
+    if(!el) return;
+    el.style.display = isPack ? "none" : "";
+  });
+}
+
 function showTab(tab){
   document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
-  const t = document.querySelector(`.tab[data-tab="${tab}"]`);
-  if(t) t.classList.add("active");
+  document.querySelectorAll(`.tab[data-tab="${tab}"]`).forEach(t => t.classList.add("active"));
 
   const map = [
-    ["tab-alocacao","alocacao"],
-    ["tab-gestao","gestao"],
-    ["tab-terceiros","terceiros"],
-    ["tab-clt","clt"],
-    ["tab-clt-disponibilizar","clt-disponibilizar"],
-    ["tab-valor-hora","valor-hora"],
-    ["tab-validacao","validacao"],
-    ["tab-resumo","resumo"],
-    ["tab-acompanhamento","acompanhamento"]
+    ["tab-alocacao",["alocacao","chamado-pack-ativos"]],
+    ["tab-gestao",["gestao"]],
+    ["tab-terceiros",["terceiros"]],
+    ["tab-clt",["clt"]],
+    ["tab-clt-disponibilizar",["clt-disponibilizar"]],
+    ["tab-valor-hora",["valor-hora"]],
+    ["tab-validacao",["validacao"]],
+    ["tab-resumo",["resumo"]],
+    ["tab-acompanhamento",["acompanhamento"]]
   ];
-  map.forEach(([id, key]) => {
+  map.forEach(([id, keys]) => {
     const el = $$(id);
-    if(el) el.classList.toggle("hidden", tab !== key);
+    if(el) el.classList.toggle("hidden", !keys.includes(tab));
   });
 
   if(tab === "gestao"){
@@ -2561,6 +2648,7 @@ function showTab(tab){
   if(tab === "resumo") renderResumo();
   if(tab === "validacao") renderValidation();
   if(tab === "acompanhamento") renderAcompanhamento();
+  updatePackAtivosDemandaView(tab);
 }
 
 document.querySelectorAll(".tab").forEach(t => {
@@ -2605,6 +2693,7 @@ document.addEventListener("input", (e)=>{
 });
 
 function validateDemandaInputs(){
+  const isPack = isPackAtivosMode();
   const cod = $$("inCodCliente").value.trim();
   const nome = $$("inNomeCliente").value.trim();
   const origem = $$("inOrigem").value.trim();
@@ -2612,8 +2701,12 @@ function validateDemandaInputs(){
   const osNumero = $$("inOS").value.trim();
   const di = $$("inDtIni").value;
   const df = $$("inDtFim").value;
-  if(!cod || !nome || !origem || !pack || !di || !df) return { ok:false, msg:"Preencha todos os campos da demanda." };
-  if(origem === "Fila Unidade - OS" && !osNumero) return { ok:false, msg:"Informe o número da OS." };
+  if(isPack){
+    if(!pack || !di || !df) return { ok:false, msg:"Preencha Pack e período da demanda." };
+  } else {
+    if(!cod || !nome || !origem || !pack || !di || !df) return { ok:false, msg:"Preencha todos os campos da demanda." };
+    if(origem === "Fila Unidade - OS" && !osNumero) return { ok:false, msg:"Informe o número da OS." };
+  }
   if(new Date(df) < new Date(di)) return { ok:false, msg:"Data fim não pode ser menor que data início." };
   return { ok:true };
 }
@@ -2655,7 +2748,11 @@ function getOrderedHomologados(){
   return state.homologados
     .filter(p => Number.isFinite(p.orderRank))
     .slice()
-    .sort((a,b)=> a.orderRank - b.orderRank);
+    .sort((a,b)=>{
+      const bpDiff = Number(isBpHomologado(a)) - Number(isBpHomologado(b));
+      if(bpDiff !== 0) return bpDiff;
+      return a.orderRank - b.orderRank;
+    });
 }
 
 function getPartnerOrderByName(name){
@@ -3585,6 +3682,8 @@ function renderHomologados(){
   state.homologados
     .slice()
     .sort((a,b)=>{
+      const bpDiff = Number(isBpHomologado(a)) - Number(isBpHomologado(b));
+      if(bpDiff !== 0) return bpDiff;
       const ar = a.orderRank ?? Infinity;
       const br = b.orderRank ?? Infinity;
       if(ar !== br) return ar - br; // menor para maior
@@ -3592,6 +3691,7 @@ function renderHomologados(){
     })
     .forEach(p=>{
       const tr = document.createElement("tr");
+      const isBp = isBpHomologado(p);
       const resCell = editMode
         ? `<input type="number" min="0" class="h-edit" data-field="resources" data-id="${p.id}" value="${p.resources}" style="width:80px" />`
         : `${p.resources}`;
@@ -3614,10 +3714,10 @@ function renderHomologados(){
       const canEdit = isTerceiroHomologado(p);
       tr.innerHTML = `
         <td>
-          <input type="number" min="1" class="order-input" data-order-id="${p.id}" value="${p.orderRank ?? ""}" style="width:64px" />
+          <input type="number" min="1" class="order-input" data-order-id="${p.id}" value="${p.orderRank ?? ""}" style="width:64px" ${isBp ? "disabled" : ""} />
         </td>
         <td>${p.code ?? ""}</td>
-        <td><b>${p.name}</b></td>
+        <td><b>${p.name}</b>${isBp ? ` <span class="tag">BP</span>` : ""}</td>
         <td>${resCell}</td>
         <td>${monCell}</td>
         <td>${vhCell}</td>
@@ -3661,6 +3761,13 @@ function renderHomologados(){
         const val = Number(orderInput.value);
         const target = state.homologados.find(x=>x.id===p.id);
         if(!target) return;
+        if(isBpHomologado(target)){
+          enforceBpOrderAtEnd();
+          orderInput.value = target.orderRank ?? "";
+          saveState();
+          renderHomologados();
+          return;
+        }
         const nextRank = Number.isFinite(val) && val > 0 ? val : null;
         if(nextRank !== null){
           const conflict = state.homologados.find(x => x.id !== p.id && x.orderRank === nextRank);
@@ -3671,9 +3778,11 @@ function renderHomologados(){
           }
         }
         target.orderRank = nextRank;
+        enforceBpOrderAtEnd();
         state.lastOrderCount = state.homologados.filter(x=>x.orderRank !== null).length;
         $$("kOrdem").textContent = state.lastOrderCount;
         saveState();
+        renderHomologados();
       });
     }
     if(editMode){
@@ -3720,6 +3829,22 @@ function findHomologadoByCode(code){
   }) || null;
 }
 
+function syncHomologadoBpFields(){
+  const chk = $$("hIsBp");
+  const wrap = $$("hBpBaseWrap");
+  const baseEl = $$("hBpBase");
+  const nameEl = $$("hNome");
+  if(!chk || !wrap || !baseEl || !nameEl) return;
+  const isBp = chk.checked === true;
+  wrap.style.display = isBp ? "" : "none";
+  nameEl.readOnly = isBp;
+  if(isBp){
+    const base = normalizeBpBaseName(baseEl.value) || "CURITIBA";
+    baseEl.value = base;
+    nameEl.value = getBpPartnerName(base);
+  }
+}
+
 function isTerceiroHomologado(partner){
   if(!partner) return false;
   const codeNorm = String(partner.code || "").replace(/\s+/g, "").toLowerCase();
@@ -3740,8 +3865,12 @@ function isTerceiroHomologado(partner){
 function loadHomologadoForm(existing){
   if(!existing) return;
   const rates = buildPartnerRateMap(existing.valorHoraByProf, Number(existing.valorHora) || 0);
+  const isBp = isBpHomologado(existing);
+  const bpBase = normalizeBpBaseName(existing.bpBase || detectBpBaseFromName(existing.name || "")) || "CURITIBA";
   $$("hCodigo").value = existing.code || "";
   $$("hNome").value = existing.name || "";
+  if($$("hIsBp")) $$("hIsBp").checked = isBp;
+  if($$("hBpBase")) $$("hBpBase").value = bpBase;
   $$("hRecursos").value = existing.resources ?? 0;
   $$("hTempo").value = existing.months ?? 0;
   $$("hValorHoraExecutor").value = rates.Executor ? formatBRL(rates.Executor) : "";
@@ -3751,6 +3880,7 @@ function loadHomologadoForm(existing){
   $$("hInicio").value = existing.inicio || "";
   state.editing.homologadoId = existing.id;
   $$("btnAddHomologado").textContent = "Salvar alterações";
+  syncHomologadoBpFields();
   const hint = $$("homologadoHint");
   if(hint) hint.style.display = "";
 }
@@ -3775,7 +3905,9 @@ function loadCltForm(existing){
 }
 
 function generateOrdemFila(){
-  const list = state.homologados.slice().sort((a,b)=>{
+  const nonBp = state.homologados.filter(p => !isBpHomologado(p));
+  const bpOnly = state.homologados.filter(p => isBpHomologado(p));
+  const list = nonBp.slice().sort((a,b)=>{
     for(const rule of state.orderRules){
       const va = a[rule.field] ?? 0;
       const vb = b[rule.field] ?? 0;
@@ -3789,7 +3921,15 @@ function generateOrdemFila(){
     const target = state.homologados.find(x=>x.id===p.id);
     if(target) target.orderRank = idx + 1;
   });
+  bpOnly
+    .slice()
+    .sort((a,b)=> (a.name || "").localeCompare(b.name || ""))
+    .forEach((p, idx)=>{
+      const target = state.homologados.find(x=>x.id===p.id);
+      if(target) target.orderRank = list.length + idx + 1;
+    });
   state.lastOrderCount = list.length;
+  state.lastOrderCount = state.homologados.filter(x=>Number.isFinite(x.orderRank)).length;
   saveState();
   renderHomologados();
   toast("Ordem gerada", "Fila ordenada pela regra configurada.", "info", 2400);
@@ -4500,6 +4640,8 @@ function resetHomologados(){
     id: crypto.randomUUID(),
     code: h.code || null,
     name: h.name,
+    isBp: h.isBp === true,
+    bpBase: normalizeBpBaseName(h.bpBase || detectBpBaseFromName(h.name || "")),
     resources: h.resources || 0,
     months: h.months || 0,
     valorHora: Number(h.valorHora) || 0,
@@ -4509,6 +4651,9 @@ function resetHomologados(){
   }));
   state.editing.homologadoId = null;
   $$("btnAddHomologado").textContent = "Adicionar Parceiro";
+  if($$("hIsBp")) $$("hIsBp").checked = false;
+  if($$("hBpBase")) $$("hBpBase").value = "CURITIBA";
+  syncHomologadoBpFields();
   state.lastOrderCount = 0;
   $$("kOrdem").textContent = "0";
   state.editModeHomologados = false;
@@ -4795,6 +4940,7 @@ function renderValidation(){
           <div class="sub">Pack: <b>${r.demanda.pack}</b></div>
           <div class="sub">Período da consulta: <b>${fmtDateSafe(r.demanda.dtIni)} → ${fmtDateSafe(r.demanda.dtFim)}</b></div>
           <div class="sub">Detalhamento: <b>${escapeHtml(r.demanda.detalhe || "—")}</b></div>
+          <div class="sub">Usuário solicitante: <b>${escapeHtml(r.demanda.analista || "—")}</b></div>
           ${outOfSeq ? `<div class="sub warn-text">Fora da sequência da fila</div>` : ""}
         </div>
       `;
@@ -4805,11 +4951,12 @@ function renderValidation(){
       const prioridadeLine = prioridadeMsgs.length
         ? prioridadeMsgs.map(t => `<div class="sub" style="color:#f59e0b;font-weight:800;margin-top:6px">${t}</div>`).join("")
         : "";
+      const tipoConsultorTag = String(r.consultant?.type || "").startsWith("CLT") ? "RECURSO SANKHYA" : (r.consultant?.type || "—");
       const consTxt = `
         <div class="meta">
           <div>
             <b>${r.consultant.name}</b>
-            <span class="tag">${r.consultant.type}</span>
+            <span class="tag">${tipoConsultorTag}</span>
             ${
               (String(r.modalidade || "").toLowerCase() === "presencial")
                 ? `<span class="tag" style="background:#f59e0b;color:#111">Presencial</span>`
@@ -4845,14 +4992,19 @@ function renderValidation(){
       });
       const baseConsultant = state.consultants.find(x=>x.id===r.consultant?.id) || r.consultant || null;
       const totalHoras = (r.slots?.length || 0) * 4;
-      const vh = baseConsultant ? getValorHoraValueFor(r.demanda?.pack || "", baseConsultant) : 0;
-      const totalValor = vh > 0 ? (totalHoras * vh) : 0;
+      const vhVendido = baseConsultant ? getValorHoraValueFor(r.demanda?.pack || "", baseConsultant) : 0;
+      const totalVendido = vhVendido > 0 ? (totalHoras * vhVendido) : 0;
+      const vhComprado = baseConsultant ? getValorCompraRecursoValue(baseConsultant) : 0;
+      const totalComprado = vhComprado > 0 ? (totalHoras * vhComprado) : 0;
       const slotsTxt = `
         <div class="small">
           ${slotsLines.join("<br/>")}
         </div>
         <div class="small muted" style="margin-top:6px">
-          Horas: <b>${totalHoras || 0}h</b> • Valor hora: <b>${vh ? formatBRL(vh) : "—"}</b> • Total: <b>${totalValor ? formatBRL(totalValor) : "—"}</b>
+          Vendido por: Horas: <b>${totalHoras || 0}h</b> • Valor Hora: <b>${vhVendido ? formatBRL(vhVendido) : "—"}</b> • Total: <b>${totalVendido ? formatBRL(totalVendido) : "—"}</b>
+        </div>
+        <div class="small muted" style="margin-top:4px">
+          Comprado por: Horas: <b>${totalHoras || 0}h</b> • Valor Hora: <b>${vhComprado ? formatBRL(vhComprado) : "—"}</b> • Total: <b>${totalComprado ? formatBRL(totalComprado) : "—"}</b>
         </div>
         ${r.obs ? `<div class="small muted" style="margin-top:8px">Obs: ${escapeHtml(r.obs)}</div>` : ""}
       `;
@@ -5332,10 +5484,13 @@ if(hCodeEl){
     } else {
       state.editing.homologadoId = null;
       $$("btnAddHomologado").textContent = "Adicionar Parceiro";
+      if($$("hIsBp")) $$("hIsBp").checked = false;
+      if($$("hBpBase")) $$("hBpBase").value = "CURITIBA";
       $$("hValorHoraExecutor").value = "";
       $$("hValorHoraAutonomo").value = "";
       $$("hValorHoraProficiente").value = "";
       $$("hValorHoraReferencia").value = "";
+      syncHomologadoBpFields();
       if(hint) hint.style.display = "none";
       if(code && state.lastHomologadoWarn !== code){
         state.lastHomologadoWarn = code;
@@ -5349,6 +5504,15 @@ if(hCodeEl){
     }
   });
 }
+const hIsBpEl = $$("hIsBp");
+if(hIsBpEl){
+  hIsBpEl.addEventListener("change", syncHomologadoBpFields);
+}
+const hBpBaseEl = $$("hBpBase");
+if(hBpBaseEl){
+  hBpBaseEl.addEventListener("change", syncHomologadoBpFields);
+}
+syncHomologadoBpFields();
 
 const validBusca = $$("validBuscaSvr");
 if(validBusca){
@@ -5655,7 +5819,9 @@ $$("btnAddCliente").addEventListener("click", ()=>{
 
 $$("btnAddHomologado").addEventListener("click", ()=>{
   const code = $$("hCodigo").value.trim();
-  const name = $$("hNome").value.trim();
+  const isBp = $$("hIsBp")?.checked === true;
+  const bpBase = normalizeBpBaseName($$("hBpBase")?.value || "") || "CURITIBA";
+  const name = isBp ? getBpPartnerName(bpBase) : $$("hNome").value.trim();
   const resources = Number($$("hRecursos").value);
   const months = Number($$("hTempo").value);
   const valorHoraByProf = buildPartnerRateMap({
@@ -5673,6 +5839,8 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
     if(target){
       target.code = code || null;
       target.name = name;
+      target.isBp = isBp;
+      target.bpBase = isBp ? bpBase : "";
       target.resources = isNaN(resources)?0:resources;
       target.months = isNaN(months)?0:months;
       target.valorHora = 0;
@@ -5686,6 +5854,8 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       id: crypto.randomUUID(),
       code: code || null,
       name,
+      isBp,
+      bpBase: isBp ? bpBase : "",
       resources: isNaN(resources)?0:resources,
       months: isNaN(months)?0:months,
       valorHora: 0,
@@ -5693,13 +5863,17 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
       inicio: inicio || ""
     });
   }
+  enforceBpOrderAtEnd();
   $$("hCodigo").value="";
   $$("hNome").value="";
+  if($$("hIsBp")) $$("hIsBp").checked = false;
+  if($$("hBpBase")) $$("hBpBase").value = "CURITIBA";
   $$("hValorHoraExecutor").value="";
   $$("hValorHoraAutonomo").value="";
   $$("hValorHoraProficiente").value="";
   $$("hValorHoraReferencia").value="";
   $$("hInicio").value="";
+  syncHomologadoBpFields();
   saveState();
   if(state.lastOrderCount > 0) generateOrdemFila();
   else renderHomologados();
