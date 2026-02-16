@@ -1372,6 +1372,11 @@ body.intro-active{overflow:hidden}
             <div class="actions">
               <button class="primary" id="btnCltBuscar">Buscar agenda</button>
               <button id="btnCltLimpar">Limpar</button>
+              <button id="btnCltParams">Parâmetros</button>
+            </div>
+
+            <div class="hint" id="cltParamsHint" style="margin-top:8px">
+              Parâmetros: dias futuros livre = <b id="cltParamDias">30</b> • visível após voltar para livre = <b id="cltParamMin">60</b> min
             </div>
 
             <div class="hint">
@@ -1387,14 +1392,14 @@ body.intro-active{overflow:hidden}
               <div class="chip">Janela: <span id="cltKJanela">—</span></div>
               <div class="chip">Selecionado: <span id="cltKCons">—</span></div>
               <div class="chip">Seleção: <span id="cltSelCount">0</span></div>
-              <div class="chip">DB Selecionados: <span id="cltLbCount">0</span></div>
+              <div class="chip">DR Selecionados: <span id="cltLbCount">0</span></div>
               <div class="chip">Recursos: <span id="cltPillCount">0</span></div>
             </div>
             <div class="actions" style="margin-top:8px">
               <button class="warn btn-sm" id="btnReservarClt" disabled>Disponibilizar agendas selecionadas</button>
               <button class="btn-sm" id="btnLimparSelClt" disabled>Limpar</button>
-              <button class="danger btn-sm" id="btnRemoveLbClt" disabled>Remover DB selecionados</button>
-              <button class="btn-sm" id="btnClearLbClt" disabled>Limpar DB</button>
+              <button class="danger btn-sm" id="btnRemoveLbClt" disabled>Remover DR selecionados</button>
+              <button class="btn-sm" id="btnClearLbClt" disabled>Limpar DR</button>
             </div>
 
             <div class="agendaWrap" style="margin-top:12px">
@@ -1815,7 +1820,7 @@ body.intro-active{overflow:hidden}
 <div class="modal-backdrop" id="cltManageBackdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="hd">
-      <strong>Disponibilizado para Base (DB)</strong>
+      <strong>Disponibilizado para Rede (DR)</strong>
       <button id="btnCloseCltManage">Fechar</button>
     </div>
     <div class="bd">
@@ -1827,6 +1832,33 @@ body.intro-active{overflow:hidden}
     <div class="ft">
       <button id="btnKeepCltManage">Manter Disponibilização Base</button>
       <button class="danger" id="btnRemoveCltManage">Remover Disponibilização Base</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="cltParamsBackdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="hd">
+      <strong>Parâmetros - Disponibilizar Recurso Sankhya Rede</strong>
+      <button id="btnCloseCltParams">Fechar</button>
+    </div>
+    <div class="bd">
+      <div class="row">
+        <div>
+          <label>Quantos dias futuros sem agenda livre para visualização</label>
+          <input id="cltParamDiasInput" type="number" min="0" step="1" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Tempo após agenda mudar para livre (minutos) para continuar visível</label>
+          <input id="cltParamMinInput" type="number" min="0" step="1" />
+        </div>
+      </div>
+    </div>
+    <div class="ft">
+      <button id="btnCancelCltParams">Cancelar</button>
+      <button class="primary" id="btnSaveCltParams">Salvar parâmetros</button>
     </div>
   </div>
 </div>
@@ -2204,6 +2236,11 @@ const state = {
   cltSelected: { consultantId: null, slotKeys: new Set(), lastIndex: null, lastConsultantId: null },
   cltSelectedLb: { consultantId: null, slotKeys: new Set(), lastIndex: null, lastConsultantId: null },
   cltAgenda: {},
+  cltAgendaLivreUntil: {},
+  cltRedeParams: {
+    diasSemAgendaFuturaLivre: 30,
+    minutosVisivelAposLivre: 60
+  },
   valorHora: {},
   pendingThirdSelection: null,
   pendingReserveAfterInfo: false,
@@ -2364,6 +2401,8 @@ function saveState(){
     terceiros: state.terceiros,
     clt: state.clt,
     cltAgenda: state.cltAgenda,
+    cltAgendaLivreUntil: state.cltAgendaLivreUntil,
+    cltRedeParams: state.cltRedeParams,
     valorHora: state.valorHora,
     orderRules: state.orderRules,
     lastOrderCount: state.lastOrderCount,
@@ -2487,6 +2526,17 @@ function normalizeLoaded(data){
   if(data.cltAgenda && typeof data.cltAgenda === "object"){
     state.cltAgenda = data.cltAgenda || {};
   }
+  if(data.cltAgendaLivreUntil && typeof data.cltAgendaLivreUntil === "object"){
+    state.cltAgendaLivreUntil = Object.fromEntries(
+      Object.entries(data.cltAgendaLivreUntil).map(([k,v]) => [String(k), Number(v) || 0])
+    );
+  }
+  if(data.cltRedeParams && typeof data.cltRedeParams === "object"){
+    state.cltRedeParams = {
+      diasSemAgendaFuturaLivre: Math.max(0, Number(data.cltRedeParams.diasSemAgendaFuturaLivre) || 0),
+      minutosVisivelAposLivre: Math.max(0, Number(data.cltRedeParams.minutosVisivelAposLivre) || 0)
+    };
+  }
   if(data.valorHora && typeof data.valorHora === "object"){
     state.valorHora = Object.fromEntries(
       Object.entries(data.valorHora).map(([k,v]) => [String(k), Number(v) || 0])
@@ -2589,6 +2639,73 @@ function parseBRL(raw){
   return Number(digits) / 100;
 }
 
+function getCltRedeParams(){
+  const dias = Math.max(0, Number(state.cltRedeParams?.diasSemAgendaFuturaLivre) || 0);
+  const minutos = Math.max(0, Number(state.cltRedeParams?.minutosVisivelAposLivre) || 0);
+  return {
+    diasSemAgendaFuturaLivre: dias,
+    minutosVisivelAposLivre: minutos
+  };
+}
+
+function refreshCltParamsHint(){
+  const p = getCltRedeParams();
+  const diasEl = $$("cltParamDias");
+  const minEl = $$("cltParamMin");
+  if(diasEl) diasEl.textContent = String(p.diasSemAgendaFuturaLivre);
+  if(minEl) minEl.textContent = String(p.minutosVisivelAposLivre);
+}
+
+function openCltParamsModal(){
+  const p = getCltRedeParams();
+  const inDias = $$("cltParamDiasInput");
+  const inMin = $$("cltParamMinInput");
+  if(inDias) inDias.value = String(p.diasSemAgendaFuturaLivre);
+  if(inMin) inMin.value = String(p.minutosVisivelAposLivre);
+  const box = $$("cltParamsBackdrop");
+  if(box) box.style.display = "flex";
+}
+
+function closeCltParamsModal(){
+  const box = $$("cltParamsBackdrop");
+  if(box) box.style.display = "none";
+}
+
+function saveCltParams(){
+  const inDias = $$("cltParamDiasInput");
+  const inMin = $$("cltParamMinInput");
+  const dias = Math.max(0, Number(inDias?.value) || 0);
+  const min = Math.max(0, Number(inMin?.value) || 0);
+  state.cltRedeParams = {
+    diasSemAgendaFuturaLivre: dias,
+    minutosVisivelAposLivre: min
+  };
+  saveState();
+  refreshCltParamsHint();
+  closeCltParamsModal();
+  const di = $$("cltDtIni")?.value || "";
+  const df = $$("cltDtFim")?.value || "";
+  const nome = $$("cltBuscaNome")?.value.trim() || "";
+  if(di && df){
+    state.cltConsultants = generateCltConsultants(di, df, nome);
+  }
+  renderCltFila();
+  toast("Parâmetros salvos", "Configuração de visualização da agenda atualizada.", "info", 2200);
+}
+
+function isCltLivreVisible(slotKey, slotDay){
+  const p = getCltRedeParams();
+  const day = new Date(`${slotDay}T00:00:00`);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffMs = day - today;
+  const diffDays = Math.floor(diffMs / 86400000);
+  const inFutureLimit = diffDays <= p.diasSemAgendaFuturaLivre;
+  if(inFutureLimit) return true;
+  const until = Number(state.cltAgendaLivreUntil?.[slotKey]) || 0;
+  return until > Date.now();
+}
+
 function isPackAtivosMode(){
   const active = document.querySelector(".tab.active");
   return active?.dataset?.tab === "chamado-pack-ativos";
@@ -2642,6 +2759,7 @@ function showTab(tab){
   if(tab === "clt") renderClt();
   if(tab === "clt-disponibilizar"){
     setCltDatesDefault();
+    refreshCltParamsHint();
     renderCltFila();
   }
   if(tab === "valor-hora") renderValorHora();
@@ -3019,13 +3137,17 @@ function generateCltConsultants(dtIni, dtFim, nameFilter=""){
       const key = `${c.id}|${s.day}|${s.period}`;
       const saved = state.cltAgenda?.[key];
       const reserved = Math.random() < 0.2;
+      let status = saved || (reserved ? "R" : "L");
+      if(status === "L" && !isCltLivreVisible(key, s.day)){
+        status = "H";
+      }
       return {
         index: idx,
         key,
         day: s.day,
         label: s.label,
         period: s.period,
-        status: saved || (reserved ? "R" : "L")
+        status
       };
     });
     const free = schedule.filter(x=>x.status==="L").length;
@@ -3235,20 +3357,25 @@ function buildDaysRange(dtIni, dtFim){
           return;
         }
 
-        const isReserved = slot.status === "R";
+        const isCltPrioritario = c.type === "CLT-DB";
+        const isDr = slot.status === "DB";
+        const isSelectable = isCltPrioritario ? isDr : (slot.status !== "R");
         const isSelected = (state.selected.consultantId === c.id) && state.selected.slotKeys.has(slot.key);
 
         const chip = document.createElement("div");
-        chip.className = `aChip ${isReserved ? "R" : "L"} ${isSelected ? "sel" : ""}`;
-        chip.title = slot.label + (isReserved ? " (Reservado)" : " (Livre)");
+        const statusClass = isCltPrioritario ? (isDr ? "DB" : "R") : (slot.status === "R" ? "R" : "L");
+        chip.className = `aChip ${statusClass} ${isSelected ? "sel" : ""}`;
+        chip.title = slot.label + (isSelectable ? " (Disponível)" : " (Indisponível)");
         chip.dataset.consultantId = c.id;
         chip.dataset.slotKey = slot.key;
         chip.dataset.index = slot.index;
 
-        // Padrão visual (print): "Manhã L" / "Tarde R"
-        chip.innerHTML = `<span>${per}</span><small>${slot.status}</small>`;
+        const statusLabel = isCltPrioritario
+          ? (isDr ? "DR" : "Indisponível")
+          : (slot.status === "DB" ? "DR" : slot.status);
+        chip.innerHTML = `<span>${per}</span><small>${statusLabel}</small>`;
 
-        if(!isReserved){
+        if(isSelectable){
           chip.addEventListener("click", onSlotClick);
         }
         cell.appendChild(chip);
@@ -3457,18 +3584,20 @@ function renderCltFila(){
           cell.appendChild(ghost);
           return;
         }
+        const isHidden = slot.status === "H";
         const isReserved = slot.status !== "L";
         const isSelected = state.cltSelected.slotKeys.has(slot.key);
         const isSelectedLb = state.cltSelectedLb.slotKeys.has(slot.key);
 
         const chip = document.createElement("div");
-        const statusClass = slot.status === "DB" ? "DB" : (slot.status === "R" ? "R" : "L");
+        const statusClass = slot.status === "DB" ? "DB" : (slot.status === "R" ? "R" : (slot.status === "L" ? "L" : ""));
         chip.className = `aChip ${statusClass} ${(isSelected || isSelectedLb) ? "sel" : ""}`;
-        chip.title = slot.label + (isReserved ? " (Reservado)" : " (Livre)");
+        chip.title = slot.label + (isHidden ? " (Oculto por parâmetro)" : (isReserved ? " (Reservado)" : " (Livre)"));
         chip.dataset.consultantId = c.id;
         chip.dataset.slotKey = slot.key;
         chip.dataset.index = slot.index;
-        chip.innerHTML = `<span>${per}</span><small>${slot.status}</small>`;
+        const statusLabel = isHidden ? "—" : (slot.status === "DB" ? "DR" : slot.status);
+        chip.innerHTML = `<span>${per}</span><small>${statusLabel}</small>`;
         if(slot.status === "DB"){
           chip.addEventListener("click", (e)=>{
             if(e.ctrlKey || e.metaKey || e.shiftKey || state.cltSelectedLb.slotKeys.size > 0){
@@ -4231,9 +4360,13 @@ function releaseReservationSlots(r){
     });
   }
   if(r.consultant?.type && String(r.consultant.type).startsWith("CLT")){
+    const mins = getCltRedeParams().minutosVisivelAposLivre;
     r.slots.forEach(s=>{
       const key = `${r.consultant.id}|${s.day}|${s.period}`;
-      if(state.cltAgenda && key in state.cltAgenda) state.cltAgenda[key] = "L";
+      if(state.cltAgenda && key in state.cltAgenda){
+        state.cltAgenda[key] = "L";
+        state.cltAgendaLivreUntil[key] = Date.now() + (mins * 60000);
+      }
     });
   }
 }
@@ -6063,6 +6196,12 @@ $$("btnCltBuscar")?.addEventListener("click", ()=>{
   renderCltFila();
 });
 
+$$("btnCltParams")?.addEventListener("click", openCltParamsModal);
+$$("btnCloseCltParams")?.addEventListener("click", closeCltParamsModal);
+$$("btnCancelCltParams")?.addEventListener("click", closeCltParamsModal);
+$$("btnSaveCltParams")?.addEventListener("click", saveCltParams);
+$$("cltParamsBackdrop")?.addEventListener("click", (e)=>{ if(e.target === $$("cltParamsBackdrop")) closeCltParamsModal(); });
+
 $$("btnCltLimpar")?.addEventListener("click", ()=>{
   $$("cltBuscaNome").value = "";
   $$("cltDtIni").value = "";
@@ -6314,6 +6453,8 @@ function removeCltManage(){
   if(target){
     target.status = "L";
     state.cltAgenda[target.key] = "L";
+    const mins = getCltRedeParams().minutosVisivelAposLivre;
+    state.cltAgendaLivreUntil[target.key] = Date.now() + (mins * 60000);
   }
   saveState();
   closeCltManageModal();
@@ -6346,11 +6487,13 @@ function applyPendingSwap(res){
 
 function removeSelectedLbClt(){
   if(state.cltSelectedLb.slotKeys.size === 0) return;
+  const mins = getCltRedeParams().minutosVisivelAposLivre;
   state.cltConsultants.forEach(c=>{
     c.schedule.forEach(s=>{
       if(state.cltSelectedLb.slotKeys.has(s.key) && s.status === "DB"){
         s.status = "L";
         state.cltAgenda[s.key] = "L";
+        state.cltAgendaLivreUntil[s.key] = Date.now() + (mins * 60000);
       }
     });
   });
@@ -6360,7 +6503,7 @@ function removeSelectedLbClt(){
   state.cltSelectedLb.lastConsultantId = null;
   saveState();
   renderCltFila();
-  toast("Disponibilização removida", "Slots DB voltaram para Livre.", "info", 2200);
+  toast("Disponibilização removida", "Slots DR voltaram para Livre.", "info", 2200);
 }
 
 function hasPriorityAvailability(dtIni, dtFim, packFilter=""){
@@ -6406,6 +6549,9 @@ function confirmCltReserve(){
       if(!slot || slot.status !== "L") return;
       slot.status = "DB";
       state.cltAgenda[slot.key] = "DB";
+      if(state.cltAgendaLivreUntil && slot.key in state.cltAgendaLivreUntil){
+        delete state.cltAgendaLivreUntil[slot.key];
+      }
       ok++;
       totalOk++;
     });
@@ -6473,6 +6619,7 @@ renderTerceiros();
 renderClt();
 setCltDatesDefault();
 renderCltFila();
+refreshCltParamsHint();
 updatePriorityHint();
 renderValidation();
 renderAcompanhamento();
