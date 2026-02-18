@@ -142,6 +142,7 @@
 
     .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     .actions.tight{gap:6px}
+    .fila-nav{display:flex;gap:10px;flex-wrap:nowrap;align-items:center}
     .btn-sm{
       padding:6px 8px;
       border-radius:10px;
@@ -850,7 +851,10 @@ body.intro-active{overflow:hidden}
 
             <div class="actions">
               <button class="primary" id="btnGerarFila">Localizar Recurso</button>
-              <button id="btnProximoFila">Próximo da fila</button>
+              <div class="fila-nav">
+                <button id="btnAnteriorFila">Fila anterior</button>
+                <button id="btnProximoFila">Próximo da fila</button>
+              </div>
               <button id="btnLimpar">Limpar</button>
             </div>
 
@@ -1127,7 +1131,8 @@ body.intro-active{overflow:hidden}
             <div class="row">
               <div>
                 <label>Empresa/Parceiro</label>
-                <input id="tEmpresa" placeholder="Ex: Parceiro Alpha" />
+                <input id="tEmpresa" list="tEmpresaList" placeholder="Ex: Parceiro Alpha" />
+                <datalist id="tEmpresaList"></datalist>
               </div>
               <div>
                 <label>Código do Parceiro</label>
@@ -1957,6 +1962,26 @@ function isBpHomologado(partner){
   return raw === "BP" || raw.startsWith("BP ");
 }
 
+function isBpName(value){
+  const raw = String(value || "").trim().toUpperCase();
+  return raw === "BP" || raw.startsWith("BP ");
+}
+
+function terceiroMatchesBpBase(resource, bpBase="", bpPartnerCode="", bpPartnerName=""){
+  if(!resource) return false;
+  const empresaRaw = String(resource.empresa || "").trim();
+  if(!isBpName(empresaRaw)) return false;
+  const partnerNameNorm = normalizeText(bpPartnerName || "");
+  if(partnerNameNorm && normalizeText(empresaRaw) === partnerNameNorm) return true;
+  const partnerCode = String(bpPartnerCode || "").replace(/\s+/g, "").toLowerCase();
+  const resourceCode = String(resource.codigo || "").replace(/\s+/g, "").toLowerCase();
+  if(partnerCode && resourceCode && partnerCode === resourceCode) return true;
+  const base = normalizeBpBaseName(bpBase || "");
+  if(!base) return true;
+  const raw = `${resource.empresa || ""} ${resource.nome || ""} ${resource.codigo || ""} ${resource.filialSlim || ""} ${resource.obs || ""}`.toUpperCase();
+  return raw.includes(base);
+}
+
 function enforceBpOrderAtEnd(){
   const nonBp = state.homologados
     .filter(p => !isBpHomologado(p))
@@ -2255,6 +2280,8 @@ const state = {
   ],
   lastOrderCount: 0,
   currentPartnerIndex: 0,
+  currentBpIndex: 0,
+  currentQueueStage: null,
   svrSeq: 0,
   lastHomologadoWarn: "",
   editModeHomologados: false,
@@ -2288,6 +2315,15 @@ function normalizeFilial(v){
   return String(v || "").toLowerCase().replace(/\s+/g," ").trim();
 }
 
+function normalizeText(v){
+  return String(v || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normalizePriorityAvail(value){
   if(!value) return [];
   if(Array.isArray(value)) return value.filter(Boolean);
@@ -2298,12 +2334,36 @@ function normalizePriorityAvail(value){
   return [];
 }
 
+function packCode(value){
+  const raw = String(value || "").trim();
+  const m = raw.match(/\b\d{4}\b/);
+  return m ? m[0] : "";
+}
+
+function packMatches(a, b){
+  const left = String(a || "").trim();
+  const right = String(b || "").trim();
+  if(!left || !right) return false;
+  if(left === right) return true;
+  const c1 = packCode(left);
+  const c2 = packCode(right);
+  if(c1 && c2) return c1 === c2;
+  return normalizeText(left) === normalizeText(right);
+}
+
+function findPackLevel(packLevels, packNeed){
+  const list = Array.isArray(packLevels) ? packLevels : [];
+  const need = String(packNeed || "").trim();
+  if(!need) return null;
+  return list.find(p => packMatches(p?.pack, need)) || null;
+}
+
 function getKnowledgeLabel(c){
   const packNeed = $$("inPack")?.value.trim() || "";
   if(c.type === "CLT-DB"){
     const res = state.clt.find(x=>x.id===c.id);
     if(res && packNeed){
-      const lvl = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
+      const lvl = findPackLevel(res.packLevels, packNeed)?.nivel || "";
       return shortNivelLabel(lvl) || "—";
     }
     return "—";
@@ -2311,7 +2371,7 @@ function getKnowledgeLabel(c){
   if(c.type === "TERCEIRO-PRESENCIAL"){
     const res = state.terceiros.find(x=>x.id===c.id);
     if(res && packNeed){
-      const lvl = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
+      const lvl = findPackLevel(res.packLevels, packNeed)?.nivel || "";
       return shortNivelLabel(lvl) || "—";
     }
     return "—";
@@ -2878,6 +2938,28 @@ function getOrderedHomologados(){
     });
 }
 
+function getOrderedQueueHomologados(){
+  return getOrderedHomologados().filter(p => !isBpHomologado(p));
+}
+
+function getOrderedBpHomologados(){
+  return getOrderedHomologados().filter(p => isBpHomologado(p));
+}
+
+function getActiveBpHomologado(){
+  const list = getOrderedBpHomologados();
+  if(!list.length) return null;
+  const idx = Math.max(0, Math.min(Number(state.currentBpIndex) || 0, list.length - 1));
+  state.currentBpIndex = idx;
+  return list[idx];
+}
+
+function hasBpQueueSource(){
+  const hasBpTerceiro = state.terceiros.some(t => isBpName(t.empresa || ""));
+  if(hasBpTerceiro) return true;
+  return getOrderedBpHomologados().length > 0;
+}
+
 function getPartnerOrderByName(name){
   if(!name) return null;
   const p = state.homologados.find(h => (h.name || "").toLowerCase() === String(name).toLowerCase());
@@ -2929,8 +3011,8 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     ? state.terceiros.filter(t => {
         if(!t.presencial) return false;
         if(packFilter){
-          const packs = Array.isArray(t.packLevels) ? t.packLevels.map(p => p.pack) : [];
-          if(!packs.includes(packFilter)) return false;
+          const hasPack = Array.isArray(t.packLevels) && t.packLevels.some(p => packMatches(p?.pack, packFilter));
+          if(!hasPack) return false;
         }
         if(filtroSen !== "ALL"){
           const list = getProfShortListFromResource(t, packFilter);
@@ -2944,7 +3026,74 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
       })
     : [];
 
+  const isTerceiroFromPartner = (resource, partner) => {
+    if(!resource || !partner) return false;
+    const partnerName = normalizeText(partner.name || "");
+    const partnerCode = String(partner.code || "").replace(/\s+/g, "").toLowerCase();
+    const empresa = normalizeText(resource.empresa || "");
+    const codigo = String(resource.codigo || "").replace(/\s+/g, "").toLowerCase();
+    if(partnerName && empresa && empresa === partnerName) return true;
+    if(partnerCode && codigo && codigo === partnerCode) return true;
+    return false;
+  };
+
+  const buildConsultantFromTerceiro = (t, partner, idx = 0) => {
+    const profList = getProfShortListFromResource(t, packFilter);
+    if(packFilter && profList.length === 0) return null;
+    if(filtroSen !== "ALL" && !profList.includes(filtroSen)) return null;
+    const sen = t.senioridade || randomFrom(seniorities);
+    const prof = profList[0] || (filtroSen !== "ALL" ? filtroSen : randomFrom(PROF_LABELS));
+    const schedule = windowSlots.map((s, sidx) => {
+      const reserved = Math.random() < 0.2;
+      return {
+        index: sidx,
+        key: `${t.id || t.nome || partner.name}|${s.day}|${s.period}`,
+        day: s.day,
+        label: s.label,
+        period: s.period,
+        status: reserved ? "R" : "L"
+      };
+    });
+    const free = schedule.filter(x=>x.status==="L").length;
+    const total = schedule.length || 1;
+    const idlePct = Math.round((free/total) * 100);
+    const score = calcScore({
+      partnerMonths: partner.months,
+      partnerResources: partner.resources,
+      seniority: sen,
+      idlePct
+    });
+    return {
+      id: t.id || crypto.randomUUID(),
+      name: t.nome || base[idx % base.length],
+      seniority: sen,
+      profShort: prof,
+      type: "TERCEIRO",
+      partnerId: partner.id,
+      partnerName: partner.name,
+      partnerOrder: partner.orderRank ?? Infinity,
+      idlePct,
+      score,
+      schedule
+    };
+  };
+
+  if(
+    partnerFilter &&
+    !isBpFilter &&
+    filtroTipo !== "SANKHYA" &&
+    (filtroTipo === "TERCEIRO" || filtroTipo === "TERCEIRO_CLT")
+  ){
+    const linked = state.terceiros
+      .filter(t => !t.presencial)
+      .filter(t => isTerceiroFromPartner(t, partnerFilter))
+      .map((t, idx) => buildConsultantFromTerceiro(t, partnerFilter, idx))
+      .filter(Boolean);
+    consultants.push(...linked);
+  }
+
   for(let i=0;i<count;i++){
+    if(partnerFilter && consultants.length > 0) break;
     if(filtroTipo === "SANKHYA" || isBpFilter) continue;
     const pool = partnerFilter ? [partnerFilter] : state.homologados;
     const partner = randomFrom(pool);
@@ -2997,37 +3146,80 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
 
   if((isBpFilter || isBpPack || isPack5309) && filtroTipo !== "SANKHYA"){
     const bpPartner = partnerFilter || getFirstHomologadoByOrder() || state.homologados[0];
+    const bpBase = normalizeBpBaseName(bpPartner?.bpBase || detectBpBaseFromName(bpPartner?.name || ""));
     if(isBpFilter){
-      const bpRegistered = state.terceiros.filter(t => String(t.empresa || "").trim().toUpperCase() === "BP");
-      bpRegistered.forEach((t, idx) => {
-        const schedule = windowSlots.map((s, sidx) => {
-          const reserved = Math.random() < (0.2 + Math.random()*0.35);
-          return {
-            index: sidx,
-            key: `${t.id || t.nome || "BP"}|${s.day}|${s.period}`,
-            day: s.day,
-            label: s.label,
-            period: s.period,
-            status: reserved ? "R" : "L"
-          };
+      const bpRegistered = state.terceiros
+        .filter(t => terceiroMatchesBpBase(t, bpBase, bpPartner?.code || "", bpPartner?.name || ""))
+        .filter(t => {
+          if(!packFilter) return true;
+          const hasPack = Array.isArray(t.packLevels) && t.packLevels.some(p => packMatches(p?.pack, packFilter));
+          return hasPack;
         });
-        const free = schedule.filter(x=>x.status==="L").length;
-        const total = schedule.length || 1;
-        const idlePct = Math.round((free/total) * 100);
-        consultants.push({
-          id: t.id || crypto.randomUUID(),
-          name: t.nome || `Recurso BP ${idx+1}`,
-          seniority: t.senioridade || randomFrom(seniorities),
-          profShort: (getProfShortListFromResource(t, packFilter)[0] || "—"),
-          type: "TERCEIRO",
-          partnerId: bpPartner?.id || null,
-          partnerName: "BP",
-          partnerOrder: -1 - (idx * 0.01),
-          idlePct,
-          score: 1300 - idx,
-          schedule
+      if(bpRegistered.length){
+        bpRegistered.forEach((t, idx) => {
+          const schedule = windowSlots.map((s, sidx) => {
+            const reserved = Math.random() < (0.2 + Math.random()*0.35);
+            return {
+              index: sidx,
+              key: `${t.id || t.nome || "BP"}|${s.day}|${s.period}`,
+              day: s.day,
+              label: s.label,
+              period: s.period,
+              status: reserved ? "R" : "L"
+            };
+          });
+          const free = schedule.filter(x=>x.status==="L").length;
+          const total = schedule.length || 1;
+          const idlePct = Math.round((free/total) * 100);
+          consultants.push({
+            id: t.id || crypto.randomUUID(),
+            name: t.nome || `Recurso BP ${idx+1}`,
+            seniority: t.senioridade || randomFrom(seniorities),
+            profShort: (getProfShortListFromResource(t, packFilter)[0] || "—"),
+            type: "TERCEIRO",
+            partnerId: bpPartner?.id || null,
+            partnerName: bpPartner?.name || "BP",
+            partnerOrder: Number.isFinite(bpPartner?.orderRank) ? bpPartner.orderRank : (Infinity - idx),
+            idlePct,
+            score: 1300 - idx,
+            schedule
+          });
         });
-      });
+      } else {
+        const bpQueue = getOrderedBpHomologados();
+        const fallback = bpQueue.length ? bpQueue : [{ id: null, name: "BP CURITIBA", bpBase: "CURITIBA", orderRank: Infinity }];
+        fallback.forEach((bp, idx) => {
+          const base = normalizeBpBaseName(bp.bpBase || detectBpBaseFromName(bp.name || "")) || "CURITIBA";
+          const displayBase = base.charAt(0) + base.slice(1).toLowerCase();
+          const schedule = windowSlots.map((s, sidx) => {
+            const reserved = Math.random() < 0.25;
+            return {
+              index: sidx,
+              key: `${bp.id || base}|${s.day}|${s.period}`,
+              day: s.day,
+              label: s.label,
+              period: s.period,
+              status: reserved ? "R" : "L"
+            };
+          });
+          const free = schedule.filter(x=>x.status==="L").length;
+          const total = schedule.length || 1;
+          const idlePct = Math.round((free/total) * 100);
+          consultants.push({
+            id: bp.id || crypto.randomUUID(),
+            name: `Recurso BP ${displayBase}`,
+            seniority: randomFrom(seniorities),
+            profShort: (filtroSen !== "ALL") ? filtroSen : randomFrom(PROF_LABELS),
+            type: "TERCEIRO",
+            partnerId: bp.id || null,
+            partnerName: "BP",
+            partnerOrder: Number.isFinite(bp.orderRank) ? bp.orderRank : (Infinity - idx),
+            idlePct,
+            score: 1200 - idx,
+            schedule
+          });
+        });
+      }
     } else {
       const fixedBpNames = [
         "Recurso BP Curitiba",
@@ -3182,8 +3374,8 @@ function getCltDbConsultants(dtIni, dtFim, packFilter=""){
   const packNeed = String(packFilter || "").trim();
   state.clt.forEach(c => {
     if(packNeed){
-      const packs = Array.isArray(c.packLevels) ? c.packLevels.map(p => p.pack) : [];
-      if(!packs.includes(packNeed)) return;
+      const hasPack = Array.isArray(c.packLevels) && c.packLevels.some(p => packMatches(p?.pack, packNeed));
+      if(!hasPack) return;
     }
     const schedule = [];
     let hasDb = false;
@@ -3955,6 +4147,7 @@ function renderHomologados(){
     }
     tbody.appendChild(tr);
   });
+  renderTerceiroPartnerOptions();
 }
 
 function findHomologadoByCode(code){
@@ -3964,6 +4157,36 @@ function findHomologadoByCode(code){
     const c = (h.code || "").replace(/\s+/g, "").toLowerCase();
     return c && c === norm;
   }) || null;
+}
+
+function findHomologadoByName(name){
+  const norm = normalizeText(name || "");
+  if(!norm) return null;
+  return state.homologados.find(h => normalizeText(h.name || "") === norm) || null;
+}
+
+function renderTerceiroPartnerOptions(){
+  const list = $$("tEmpresaList");
+  if(!list) return;
+  const names = Array.from(new Set(
+    state.homologados
+      .map(h => String(h.name || "").trim())
+      .filter(Boolean)
+      .sort((a,b) => a.localeCompare(b))
+  ));
+  list.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
+}
+
+function syncTerceiroPartnerByEmpresa(){
+  const empresaEl = $$("tEmpresa");
+  const codigoEl = $$("tCodigo");
+  if(!empresaEl || !codigoEl) return;
+  const homologado = findHomologadoByName(empresaEl.value);
+  if(!homologado) return;
+  empresaEl.value = homologado.name || empresaEl.value;
+  if(String(homologado.code || "").trim()){
+    codigoEl.value = String(homologado.code || "").trim();
+  }
 }
 
 function syncHomologadoBpFields(){
@@ -4209,7 +4432,7 @@ function getProfShortListFromResource(resource, packFilter=""){
   if(!resource) return [];
   const levels = Array.isArray(resource.packLevels) ? resource.packLevels : [];
   if(packFilter){
-    const lvl = levels.find(p => p.pack === packFilter)?.nivel || "";
+    const lvl = findPackLevel(levels, packFilter)?.nivel || "";
     const short = shortNivelLabel(lvl);
     return short && short !== "—" ? [short] : [];
   }
@@ -4295,12 +4518,12 @@ function getValorHoraLabel(c){
   if(c.type === "CLT-DB"){
     const res = state.clt.find(x=>x.id===c.id);
     if(res && packNeed){
-      nivel = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
+      nivel = findPackLevel(res.packLevels, packNeed)?.nivel || "";
     }
   } else if(c.type === "TERCEIRO-PRESENCIAL"){
     const res = state.terceiros.find(x=>x.id===c.id);
     if(res && packNeed){
-      nivel = (res.packLevels || []).find(p => p.pack === packNeed)?.nivel || "";
+      nivel = findPackLevel(res.packLevels, packNeed)?.nivel || "";
     }
   } else if(c.profShort){
     const key = Object.keys(state.valorHora || {}).find(k => shortNivelLabel(k) === c.profShort);
@@ -4319,12 +4542,12 @@ function getValorHoraValueFor(packNeed, c){
   if(c.type === "CLT-DB"){
     const res = state.clt.find(x=>x.id===c.id);
     if(res && packFilter){
-      nivel = (res.packLevels || []).find(p => p.pack === packFilter)?.nivel || "";
+      nivel = findPackLevel(res.packLevels, packFilter)?.nivel || "";
     }
   } else if(c.type === "TERCEIRO-PRESENCIAL"){
     const res = state.terceiros.find(x=>x.id===c.id);
     if(res && packFilter){
-      nivel = (res.packLevels || []).find(p => p.pack === packFilter)?.nivel || "";
+      nivel = findPackLevel(res.packLevels, packFilter)?.nivel || "";
     }
   } else if(c.profShort){
     const key = Object.keys(state.valorHora || {}).find(k => shortNivelLabel(k) === c.profShort);
@@ -5849,12 +6072,14 @@ $$("btnGerarFila").addEventListener("click", ()=>{
   if(!v.ok){ toast("Campos obrigatórios", v.msg, "warn", 3200); return; }
   const filtroTipo = $$("inFiltroTipo")?.value || "TERCEIRO";
   const isBpFilter = filtroTipo === "BP";
-  const ordered = getOrderedHomologados();
+  const ordered = getOrderedQueueHomologados();
   if(isBpFilter){
     state.currentPartnerIndex = 0;
+    state.currentBpIndex = 0;
     state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value);
   } else if(ordered.length){
     state.currentPartnerIndex = 0;
+    state.currentBpIndex = 0;
     const firstPartner = ordered[0];
     state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value, firstPartner);
   } else {
@@ -5865,6 +6090,7 @@ $$("btnGerarFila").addEventListener("click", ()=>{
   state.selected.slotKeys.clear();
   state.selected.lastIndex = null;
   state.selected.consultantId = null;
+  state.currentQueueStage = detectCurrentQueueStage();
 
   renderFila();
   state.priorityChecked = true;
@@ -5884,30 +6110,260 @@ function proceedNextPartner(partner){
   state.selected.lastIndex = null;
   renderFila();
   updatePriorityHint();
+  state.currentQueueStage = "HOMOLOGADOS";
   toast("Próximo da fila", `Parceiro: ${partner.name}`, "info", 2200);
 }
 
+const QUEUE_STAGES = ["SANKHYA_DB", "HOMOLOGADO_PRESENCIAL", "HOMOLOGADOS", "BP"];
+
+function detectCurrentQueueStage(){
+  const list = Array.isArray(state.consultants) ? state.consultants : [];
+  if(!list.length) return null;
+  const only = (pred) => list.length > 0 && list.every(pred);
+  if(only(c => String(c.type || "") === "CLT-DB")) return "SANKHYA_DB";
+  if(only(c => String(c.type || "") === "TERCEIRO-PRESENCIAL")) return "HOMOLOGADO_PRESENCIAL";
+  if(only(c => isBpName(c.partnerName || ""))) return "BP";
+  return "HOMOLOGADOS";
+}
+
+function withFiltroTipoValue(tempValue, fn){
+  const el = $$("inFiltroTipo");
+  if(!el) return fn();
+  const prev = el.value;
+  el.value = tempValue;
+  try{
+    return fn();
+  } finally {
+    el.value = prev;
+  }
+}
+
+function getAvailableQueueStages(dtIni, dtFim, packFilter=""){
+  const ordered = getOrderedQueueHomologados();
+  return QUEUE_STAGES.filter(stage => {
+    if(stage === "SANKHYA_DB") return getCltDbConsultants(dtIni, dtFim, packFilter).length > 0;
+    if(stage === "HOMOLOGADO_PRESENCIAL") return getTerceiroPresencialDisponivel(packFilter).length > 0;
+    if(stage === "HOMOLOGADOS") return ordered.length > 0;
+    if(stage === "BP") return hasBpQueueSource();
+    return false;
+  });
+}
+
+function nextQueueStage(currentStage, availableStages){
+  if(!availableStages.length) return null;
+  const idx = QUEUE_STAGES.indexOf(currentStage);
+  for(let i=1; i<=QUEUE_STAGES.length; i++){
+    const stage = QUEUE_STAGES[(idx + i + QUEUE_STAGES.length) % QUEUE_STAGES.length];
+    if(availableStages.includes(stage)) return stage;
+  }
+  return availableStages[0] || null;
+}
+
+function applyQueueStage(stage){
+  const dtIni = $$("inDtIni")?.value || "";
+  const dtFim = $$("inDtFim")?.value || "";
+  const packFilter = $$("inPack")?.value.trim() || "";
+  const ordered = getOrderedQueueHomologados();
+  let label = "";
+  let list = [];
+  const topClt = withFiltroTipoValue("TERCEIRO_CLT", () => generateConsultants(dtIni, dtFim))
+    .filter(c => String(c.type || "") === "CLT-DB");
+  const topPresencial = withFiltroTipoValue("TERCEIRO", () => generateConsultants(dtIni, dtFim))
+    .filter(c => String(c.type || "") === "TERCEIRO-PRESENCIAL");
+  const composeWithPriorityTop = (base) => [...topClt, ...topPresencial, ...base];
+
+  if(stage === "SANKHYA_DB"){
+    label = "Recurso Sankhya Disponibilizado";
+    list = topClt;
+  } else if(stage === "HOMOLOGADO_PRESENCIAL"){
+    label = "Recurso Homologado Presencial";
+    list = topPresencial;
+  } else if(stage === "HOMOLOGADOS"){
+    if(!ordered.length) return false;
+    const safeIdx = Math.max(0, Math.min(Number(state.currentPartnerIndex) || 0, ordered.length - 1));
+    const partner = ordered[safeIdx];
+    state.currentPartnerIndex = safeIdx;
+    label = `Homologados (${partner.name})`;
+    const base = withFiltroTipoValue("TERCEIRO", () => generateConsultants(dtIni, dtFim, partner))
+      .filter(c => String(c.type || "") !== "CLT-DB")
+      .filter(c => String(c.type || "") !== "TERCEIRO-PRESENCIAL")
+      .filter(c => !isBpName(c.partnerName || ""));
+    list = composeWithPriorityTop(base);
+  } else if(stage === "BP"){
+    const bpPartner = getActiveBpHomologado();
+    label = bpPartner ? `BP (${bpPartner.name})` : "BP";
+    const baseCode = normalizeBpBaseName(bpPartner?.bpBase || detectBpBaseFromName(bpPartner?.name || ""));
+    let bpBaseList = [];
+    const bpGenerated = withFiltroTipoValue("BP", () => generateConsultants(dtIni, dtFim, bpPartner))
+      .filter(c => String(c.type || "") !== "CLT-DB")
+      .filter(c => String(c.type || "") !== "TERCEIRO-PRESENCIAL")
+      .filter(c => {
+        if(!bpPartner) return true;
+        if(c.partnerId && bpPartner.id) return c.partnerId === bpPartner.id;
+        return normalizeText(c.partnerName || "") === normalizeText(bpPartner.name || "");
+      })
+      .map((c, idx) => ({
+        ...c,
+        partnerName: bpPartner?.name || c.partnerName || "BP",
+        partnerOrder: Number.isFinite(bpPartner?.orderRank) ? bpPartner.orderRank : (c.partnerOrder ?? (Infinity - idx))
+      }));
+    if(bpGenerated.length){
+      bpBaseList = bpGenerated;
+    }
+    if(!bpBaseList.length && bpPartner){
+      const displayBase = (baseCode || "CURITIBA");
+      const windowSlots = makeSlotsWindow(dtIni, dtFim);
+      const schedule = windowSlots.map((s, sidx) => ({
+        index: sidx,
+        key: `${bpPartner.id || displayBase}|${s.day}|${s.period}`,
+        day: s.day,
+        label: s.label,
+        period: s.period,
+        status: Math.random() < 0.25 ? "R" : "L"
+      }));
+      const free = schedule.filter(x=>x.status==="L").length;
+      const total = schedule.length || 1;
+      const idlePct = Math.round((free/total) * 100);
+      bpBaseList = [{
+        id: bpPartner.id || crypto.randomUUID(),
+        name: `Recurso ${bpPartner.name}`,
+        seniority: randomFrom(["Junior","Pleno","Senior"]),
+        profShort: randomFrom(PROF_LABELS),
+        type: "TERCEIRO",
+        partnerId: bpPartner.id || null,
+        partnerName: bpPartner.name,
+        partnerOrder: Number.isFinite(bpPartner.orderRank) ? bpPartner.orderRank : Infinity,
+        idlePct,
+        score: 1200,
+        schedule
+      }];
+    }
+    list = composeWithPriorityTop(bpBaseList);
+  }
+
+  if(!list.length) return false;
+  state.consultants = list;
+  state.selected.consultantId = null;
+  state.selected.slotKeys.clear();
+  state.selected.lastIndex = null;
+  state.currentQueueStage = stage;
+  renderFila();
+  updatePriorityHint();
+  saveState();
+  toast("Próximo da fila", label, "info", 2200);
+  return true;
+}
+
 $$("btnProximoFila").addEventListener("click", ()=>{
-  const filtroTipo = $$("inFiltroTipo")?.value || "TERCEIRO";
-  if(filtroTipo === "BP"){
-    state.consultants = generateConsultants($$("inDtIni").value, $$("inDtFim").value);
-    state.selected.consultantId = null;
-    state.selected.slotKeys.clear();
-    state.selected.lastIndex = null;
-    renderFila();
-    updatePriorityHint();
-    toast("Sugestões BP", "Nova rodada aleatória de recursos e agendas BP.", "info", 2200);
+  const dtIni = $$("inDtIni")?.value || "";
+  const dtFim = $$("inDtFim")?.value || "";
+  const packFilter = $$("inPack")?.value.trim() || "";
+  const ordered = getOrderedQueueHomologados();
+  const hasBp = hasBpQueueSource();
+  if(!ordered.length && !hasBp){
+    toast("Fila indisponível", "Sem recursos disponíveis para avançar a fila.", "warn", 2800);
     return;
   }
-  const ordered = getOrderedHomologados();
-  if(!ordered.length){
-    toast("Ordem não definida", "Gere a ordem da fila dos homologados para aplicar a prioridade.", "warn", 2800);
+  const currentStage = state.currentQueueStage || detectCurrentQueueStage();
+  const bpOrdered = getOrderedBpHomologados();
+  if(currentStage === "HOMOLOGADOS"){
+    const nextIdx = (Number(state.currentPartnerIndex) || 0) + 1;
+    if(nextIdx < ordered.length){
+      state.currentPartnerIndex = nextIdx;
+      if(applyQueueStage("HOMOLOGADOS")) return;
+    }
+    if(hasBp){
+      state.currentBpIndex = 0;
+      if(applyQueueStage("BP")) return;
+    }
+    state.currentPartnerIndex = 0;
+    if(ordered.length && applyQueueStage("HOMOLOGADOS")) return;
+    toast("Fim da fila", "Fila reiniciada para o primeiro parceiro homologado.", "warn", 2800);
     return;
   }
-  const nextIdx = (state.currentPartnerIndex + 1) % ordered.length;
-  const partner = ordered[nextIdx];
-  state.currentPartnerIndex = nextIdx;
-  proceedNextPartner(partner);
+  if(currentStage === "BP"){
+    if(bpOrdered.length > 1){
+      const nextBp = (Number(state.currentBpIndex) || 0) + 1;
+      if(nextBp < bpOrdered.length){
+        state.currentBpIndex = nextBp;
+        if(applyQueueStage("BP")) return;
+      }
+    }
+    state.currentPartnerIndex = 0;
+    if(ordered.length && applyQueueStage("HOMOLOGADOS")) return;
+    if(applyQueueStage("BP")) return;
+    toast("Sem BP cadastrado", "Cadastre recursos com empresa BP para exibir resultados.", "warn", 2600);
+    return;
+  }
+  if(ordered.length){
+    state.currentPartnerIndex = 0;
+    if(applyQueueStage("HOMOLOGADOS")) return;
+  }
+  if(hasBp && applyQueueStage("BP")) return;
+  toast("Fila indisponível", "Não foi possível avançar para o próximo estágio da fila.", "warn", 2800);
+});
+
+$$("btnAnteriorFila").addEventListener("click", ()=>{
+  const ordered = getOrderedQueueHomologados();
+  const hasBp = hasBpQueueSource();
+  const bpOrdered = getOrderedBpHomologados();
+  if(!ordered.length && !hasBp){
+    toast("Fila indisponível", "Sem recursos disponíveis para voltar a fila.", "warn", 2800);
+    return;
+  }
+  const currentStage = state.currentQueueStage || detectCurrentQueueStage();
+  if(currentStage === "HOMOLOGADOS"){
+    const currentIdx = Number(state.currentPartnerIndex) || 0;
+    if(currentIdx > 0){
+      state.currentPartnerIndex = currentIdx - 1;
+      if(applyQueueStage("HOMOLOGADOS")) return;
+    } else {
+      if(hasBp){
+        state.currentBpIndex = Math.max(0, bpOrdered.length - 1);
+        if(applyQueueStage("BP")) return;
+      }
+      if(ordered.length){
+        state.currentPartnerIndex = ordered.length - 1;
+        if(applyQueueStage("HOMOLOGADOS")) return;
+      }
+    }
+    toast("Fila indisponível", "Não foi possível voltar para o parceiro anterior.", "warn", 2800);
+    return;
+  }
+  if(currentStage === "BP"){
+    const currentBp = Number(state.currentBpIndex) || 0;
+    if(currentBp > 0){
+      state.currentBpIndex = currentBp - 1;
+      if(applyQueueStage("BP")) return;
+    }
+    if(ordered.length){
+      state.currentPartnerIndex = ordered.length - 1;
+      if(applyQueueStage("HOMOLOGADOS")) return;
+    }
+    if(applyQueueStage("BP")) return;
+    toast("Fila indisponível", "Não foi possível voltar para o parceiro anterior.", "warn", 2800);
+    return;
+  }
+  if(hasBp && applyQueueStage("BP")) return;
+  if(ordered.length){
+    state.currentPartnerIndex = ordered.length - 1;
+    if(applyQueueStage("HOMOLOGADOS")) return;
+  }
+  toast("Fila indisponível", "Não foi possível voltar para o parceiro anterior.", "warn", 2800);
+});
+
+$$("inFiltroTipo")?.addEventListener("change", ()=>{
+  const tipo = $$("inFiltroTipo")?.value || "TERCEIRO";
+  if(tipo === "BP"){
+    state.currentBpIndex = 0;
+    state.currentQueueStage = "BP";
+  } else if(tipo === "TERCEIRO" || tipo === "TERCEIRO_CLT"){
+    state.currentQueueStage = "HOMOLOGADOS";
+  } else if(tipo === "SANKHYA"){
+    state.currentQueueStage = "SANKHYA_DB";
+  } else {
+    state.currentQueueStage = null;
+  }
 });
 
 $$("btnLimpar").addEventListener("click", ()=>{
@@ -5919,6 +6375,8 @@ $$("btnLimpar").addEventListener("click", ()=>{
   $$("inFiltroTipo").value="TERCEIRO";
   $$("inFiltroSenioridade").value="ALL";
   state.consultants = [];
+  state.currentBpIndex = 0;
+  state.currentQueueStage = null;
   state.selected.slotKeys.clear();
   state.selected.lastIndex = null;
   state.selected.consultantId = null;
@@ -6151,6 +6609,7 @@ $$("btnAddHomologado").addEventListener("click", ()=>{
 });
 
 $$("btnAddTerceiro")?.addEventListener("click", ()=>{
+  syncTerceiroPartnerByEmpresa();
   const empresa = $$("tEmpresa").value.trim();
   const codigo = $$("tCodigo").value.trim();
   const nome = $$("tNome").value.trim();
@@ -6651,8 +7110,8 @@ function getTerceiroPresencialDisponivel(packFilter=""){
   return state.terceiros.filter(t => {
     if(!t.presencial) return false;
     if(packFilter){
-      const packs = Array.isArray(t.packLevels) ? t.packLevels.map(p => p.pack) : [];
-      if(!packs.includes(packFilter)) return false;
+      const hasPack = Array.isArray(t.packLevels) && t.packLevels.some(p => packMatches(p?.pack, packFilter));
+      if(!hasPack) return false;
     }
     const tf = normalizeFilial(t.filialSlim || "");
     if(tf && $$("inFilial")?.value){
@@ -6782,6 +7241,12 @@ if(tPresencial){
     }
   });
 }
+const tEmpresa = $$("tEmpresa");
+if(tEmpresa){
+  tEmpresa.addEventListener("change", syncTerceiroPartnerByEmpresa);
+  tEmpresa.addEventListener("blur", syncTerceiroPartnerByEmpresa);
+}
+renderTerceiroPartnerOptions();
 
 // ======= MPV Modal (Reservar agenda) + seleção múltipla =======
 
