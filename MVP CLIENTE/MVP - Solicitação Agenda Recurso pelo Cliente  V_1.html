@@ -2273,7 +2273,7 @@ const state = {
   pendingThirdSelection: null,
   pendingReserveAfterInfo: false,
   priorityChecked: false,
-  editing: { clienteId: null, homologadoId: null, cltId: null },
+  editing: { clienteId: null, homologadoId: null, terceiroId: null, cltId: null },
   orderRules: [
     { field: "resources", dir: "desc" },
     { field: "months", dir: "desc" }
@@ -2943,7 +2943,23 @@ function getOrderedQueueHomologados(){
 }
 
 function getOrderedBpHomologados(){
-  return getOrderedHomologados().filter(p => isBpHomologado(p));
+  // BP segue fila propria: maior quantidade de recursos e maior tempo de parceria.
+  return state.homologados
+    .filter(p => isBpHomologado(p))
+    .slice()
+    .sort((a,b)=>{
+      const resDiff = (Number(b.resources) || 0) - (Number(a.resources) || 0);
+      if(resDiff !== 0) return resDiff;
+      const monthsDiff = (Number(b.months) || 0) - (Number(a.months) || 0);
+      if(monthsDiff !== 0) return monthsDiff;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+}
+
+function getBpQueueRank(partnerId){
+  if(!partnerId) return null;
+  const idx = getOrderedBpHomologados().findIndex(p => p.id === partnerId);
+  return idx >= 0 ? (idx + 1) : null;
 }
 
 function getActiveBpHomologado(){
@@ -3001,10 +3017,31 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     "Kassius Lima","Larissa Nunes","Marcos Vinícius","Natália Melo","Otávio Fernandes",
     "Paula Freitas","Rafael Moreira","Renata Almeida","Sérgio Oliveira","Thiago Augusto"
   ];
+  const firstNames = [
+    "Amanda","Bruna","Caio","Davi","Eduarda","Fabio","Gabriel","Helena","Iago","Jade",
+    "Kleber","Luan","Mirela","Nicolas","Olivia","Pietro","Quezia","Ruan","Samira","Tomas",
+    "Ursula","Vitor","Wagner","Yara","Zelia"
+  ];
+  const lastNames = [
+    "Almeida","Barbosa","Cardoso","Domingues","Esteves","Ferreira","Goncalves","Henriques",
+    "Ibrahim","Junqueira","Klein","Leite","Monteiro","Nogueira","Oliveira","Pereira","Queiroz",
+    "Ramos","Siqueira","Teixeira","Uchoa","Vieira","Xavier","Yamamoto","Zanetti"
+  ];
+  const usedNames = new Set();
+  const randomConsultantName = () => {
+    for(let i=0;i<20;i++){
+      const name = `${randomFrom(firstNames)} ${randomFrom(lastNames)}`;
+      if(!usedNames.has(name)){
+        usedNames.add(name);
+        return name;
+      }
+    }
+    return `${randomFrom(firstNames)} ${randomFrom(lastNames)} ${Math.floor(10 + Math.random()*89)}`;
+  };
   const seniorities = ["Junior","Pleno","Senior"];
   const types = ["TERCEIRO","CLT"];
 
-  const count = (isBpFilter || isBpPack ? 18 : 10) + Math.floor(Math.random()*((isBpFilter || isBpPack) ? 6 : 4));
+  const count = (isBpFilter || isBpPack ? 28 : 18) + Math.floor(Math.random()*((isBpFilter || isBpPack) ? 10 : 8));
   const consultants = [];
 
   const presencialTerceiros = (filtroTipo === "TERCEIRO" || filtroTipo === "TERCEIRO_CLT")
@@ -3043,8 +3080,9 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     if(filtroSen !== "ALL" && !profList.includes(filtroSen)) return null;
     const sen = t.senioridade || randomFrom(seniorities);
     const prof = profList[0] || (filtroSen !== "ALL" ? filtroSen : randomFrom(PROF_LABELS));
+    const reservedChance = 0.15 + Math.random() * 0.45;
     const schedule = windowSlots.map((s, sidx) => {
-      const reserved = Math.random() < 0.2;
+      const reserved = Math.random() < reservedChance;
       return {
         index: sidx,
         key: `${t.id || t.nome || partner.name}|${s.day}|${s.period}`,
@@ -3065,7 +3103,7 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     });
     return {
       id: t.id || crypto.randomUUID(),
-      name: t.nome || base[idx % base.length],
+      name: t.nome || base[idx % base.length] || randomConsultantName(),
       seniority: sen,
       profShort: prof,
       type: "TERCEIRO",
@@ -3090,6 +3128,49 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
       .map((t, idx) => buildConsultantFromTerceiro(t, partnerFilter, idx))
       .filter(Boolean);
     consultants.push(...linked);
+    const minOptionsForTests = 14;
+    if(consultants.length < minOptionsForTests){
+      const faltantes = minOptionsForTests - consultants.length;
+      for(let i=0;i<faltantes;i++){
+        const sen = randomFrom(seniorities);
+        const prof = (filtroSen !== "ALL") ? filtroSen : randomFrom(PROF_LABELS);
+        const name = randomConsultantName();
+        const reservedChance = 0.2 + Math.random() * 0.4;
+        const schedule = windowSlots.map((s, idx) => {
+          const reserved = Math.random() < reservedChance;
+          return {
+            index: idx,
+            key: `${name}|${partnerFilter.name}|${s.day}|${s.period}`,
+            day: s.day,
+            label: s.label,
+            period: s.period,
+            status: reserved ? "R" : "L"
+          };
+        });
+        const free = schedule.filter(x=>x.status==="L").length;
+        const total = schedule.length || 1;
+        const idlePct = Math.round((free/total) * 100);
+        const score = calcScore({
+          partnerMonths: partnerFilter.months,
+          partnerResources: partnerFilter.resources,
+          seniority: sen,
+          idlePct
+        });
+        consultants.push({
+          id: crypto.randomUUID(),
+          name,
+          seniority: sen,
+          profShort: prof,
+          type: "TERCEIRO",
+          partnerId: partnerFilter.id,
+          partnerName: partnerFilter.name,
+          partnerOrder: partnerFilter.orderRank ?? Infinity,
+          idlePct,
+          score,
+          schedule
+        });
+      }
+    }
   }
 
   for(let i=0;i<count;i++){
@@ -3100,14 +3181,15 @@ function generateConsultants(dtIni, dtFim, partnerFilter=null){
     const sen = randomFrom(seniorities);
     const prof = randomFrom(PROF_LABELS);
     const type = randomFrom(types);
-    const name = base[i % base.length];
+    const name = randomConsultantName();
 
     if(filtroTipo === "TERCEIRO" && type !== "TERCEIRO") continue;
     if(filtroSen !== "ALL" && prof !== filtroSen) continue;
 
     // agenda: random livre/reservado
+    const reservedChance = 0.12 + Math.random() * 0.46;
     const schedule = windowSlots.map((s, idx) => {
-      const reserved = Math.random() < 0.25;
+      const reserved = Math.random() < reservedChance;
       return {
         index: idx,
         key: `${name}|${partner.name}|${s.day}|${s.period}`,
@@ -4264,6 +4346,26 @@ function loadCltForm(existing){
   $$("btnAddClt").textContent = "Salvar alterações";
 }
 
+function loadTerceiroForm(existing){
+  if(!existing) return;
+  $$("tEmpresa").value = existing.empresa || "";
+  $$("tCodigo").value = existing.codigo || "";
+  $$("tNome").value = existing.nome || "";
+  $$("tFuncao").value = existing.funcao || "";
+  $$("tSenioridade").value = existing.senioridade || "";
+  $$("tModalidade").value = existing.modalidade || "";
+  $$("tEmail").value = existing.email || "";
+  $$("tTelefone").value = existing.telefone || "";
+  $$("tDisponivel").value = existing.disponivel || "";
+  $$("tCarga").value = existing.carga ?? 40;
+  $$("tPresencial").checked = existing.presencial === true;
+  $$("tFilialSlim").value = existing.filialSlim || "";
+  $$("tFilialRow").classList.toggle("hidden", existing.presencial !== true);
+  $$("tObs").value = existing.obs || "";
+  state.editing.terceiroId = existing.id;
+  $$("btnAddTerceiro").textContent = "Salvar alterações";
+}
+
 function generateOrdemFila(){
   const nonBp = state.homologados.filter(p => !isBpHomologado(p));
   const bpOnly = state.homologados.filter(p => isBpHomologado(p));
@@ -4283,7 +4385,13 @@ function generateOrdemFila(){
   });
   bpOnly
     .slice()
-    .sort((a,b)=> (a.name || "").localeCompare(b.name || ""))
+    .sort((a,b)=>{
+      const resDiff = (Number(b.resources) || 0) - (Number(a.resources) || 0);
+      if(resDiff !== 0) return resDiff;
+      const monthsDiff = (Number(b.months) || 0) - (Number(a.months) || 0);
+      if(monthsDiff !== 0) return monthsDiff;
+      return (a.name || "").localeCompare(b.name || "");
+    })
     .forEach((p, idx)=>{
       const target = state.homologados.find(x=>x.id===p.id);
       if(target) target.orderRank = list.length + idx + 1;
@@ -5770,6 +5878,7 @@ function renderTerceiros(){
           <div class="terceiro-sub">${parceiro}</div>
         </div>
         <div class="terceiro-actions">
+          <button class="btn-sm" data-edit="${t.id}">Editar</button>
           <button class="btn-sm" data-define="${t.id}">Definir Proficiencia do Recurso</button>
           <button class="btn-sm danger" data-del="${t.id}">Remover</button>
         </div>
@@ -5784,10 +5893,15 @@ function renderTerceiros(){
       ${presencialMsg}
       <div class="pack-list">${packsHtml}</div>
     `;
+    card.querySelector("[data-edit]").addEventListener("click", ()=> loadTerceiroForm(t));
     card.querySelector("[data-define]").addEventListener("click", ()=> openTerceiroModal(t.id, "terceiros"));
     card.querySelector("[data-del]").addEventListener("click", ()=>{
       if(!confirm("Remover este recurso?")) return;
       state.terceiros = state.terceiros.filter(x => x.id !== t.id);
+      if(state.editing.terceiroId === t.id){
+        state.editing.terceiroId = null;
+        $$("btnAddTerceiro").textContent = "Adicionar Recurso";
+      }
       saveState();
       renderTerceiros();
     });
@@ -6192,6 +6306,8 @@ function applyQueueStage(stage){
   } else if(stage === "BP"){
     const bpPartner = getActiveBpHomologado();
     label = bpPartner ? `BP (${bpPartner.name})` : "BP";
+    const bpRank = getBpQueueRank(bpPartner?.id);
+    const bpOrderValue = Number.isFinite(bpRank) ? bpRank : (Number.isFinite(bpPartner?.orderRank) ? bpPartner.orderRank : Infinity);
     const baseCode = normalizeBpBaseName(bpPartner?.bpBase || detectBpBaseFromName(bpPartner?.name || ""));
     let bpBaseList = [];
     const bpGenerated = withFiltroTipoValue("BP", () => generateConsultants(dtIni, dtFim, bpPartner))
@@ -6205,7 +6321,7 @@ function applyQueueStage(stage){
       .map((c, idx) => ({
         ...c,
         partnerName: bpPartner?.name || c.partnerName || "BP",
-        partnerOrder: Number.isFinite(bpPartner?.orderRank) ? bpPartner.orderRank : (c.partnerOrder ?? (Infinity - idx))
+        partnerOrder: bpOrderValue ?? (c.partnerOrder ?? (Infinity - idx))
       }));
     if(bpGenerated.length){
       bpBaseList = bpGenerated;
@@ -6232,7 +6348,7 @@ function applyQueueStage(stage){
         type: "TERCEIRO",
         partnerId: bpPartner.id || null,
         partnerName: bpPartner.name,
-        partnerOrder: Number.isFinite(bpPartner.orderRank) ? bpPartner.orderRank : Infinity,
+        partnerOrder: bpOrderValue,
         idlePct,
         score: 1200,
         schedule
@@ -6633,8 +6749,7 @@ $$("btnAddTerceiro")?.addEventListener("click", ()=>{
     return;
   }
 
-  const novo = {
-    id: crypto.randomUUID(),
+  const terceiroPayload = {
     empresa,
     codigo,
     nome,
@@ -6647,10 +6762,26 @@ $$("btnAddTerceiro")?.addEventListener("click", ()=>{
     carga: isNaN(carga) ? 0 : carga,
     presencial,
     filialSlim: presencial ? filialSlim : "",
-    obs,
-    packLevels: []
+    obs
   };
-  state.terceiros.push(novo);
+  let terceiroIdForModal = null;
+  if(state.editing.terceiroId){
+    const target = state.terceiros.find(x=>x.id===state.editing.terceiroId);
+    if(target){
+      Object.assign(target, terceiroPayload);
+      terceiroIdForModal = target.id;
+    }
+    state.editing.terceiroId = null;
+    $$("btnAddTerceiro").textContent = "Adicionar Recurso";
+  } else {
+    const novo = {
+      id: crypto.randomUUID(),
+      ...terceiroPayload,
+      packLevels: []
+    };
+    state.terceiros.push(novo);
+    terceiroIdForModal = novo.id;
+  }
   $$("tEmpresa").value = "";
   $$("tCodigo").value = "";
   $$("tNome").value = "";
@@ -6667,7 +6798,7 @@ $$("btnAddTerceiro")?.addEventListener("click", ()=>{
   $$("tObs").value = "";
   saveState();
   renderTerceiros();
-  openTerceiroModal(novo.id);
+  if(terceiroIdForModal) openTerceiroModal(terceiroIdForModal);
 });
 
 $$("btnResetTerceiro")?.addEventListener("click", ()=>{
@@ -6685,6 +6816,8 @@ $$("btnResetTerceiro")?.addEventListener("click", ()=>{
   $$("tFilialSlim").value = "";
   $$("tFilialRow").classList.add("hidden");
   $$("tObs").value = "";
+  state.editing.terceiroId = null;
+  $$("btnAddTerceiro").textContent = "Adicionar Recurso";
 });
 
 $$("btnAddClt")?.addEventListener("click", ()=>{
