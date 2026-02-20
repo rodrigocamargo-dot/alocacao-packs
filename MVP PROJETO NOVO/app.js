@@ -328,6 +328,7 @@
       perFapData[state.fap] = {
         dtIni: state.dtIni || "",
         dtFim: state.dtFim || "",
+        periodoMaior60Motivo: state.periodoMaior60Motivo || "",
         packIds: Array.isArray(state.packIds) ? state.packIds.slice() : [],
         obs: state.obs || "",
         validationComment: state.validationComment || "",
@@ -366,7 +367,7 @@
     let lastSelectedIdx = null;
 
 
-    const state = { fap:"", dtIni:"", dtFim:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false, premissas: defaultPremissas() };
+    const state = { fap:"", dtIni:"", dtFim:"", periodoMaior60Motivo:"", packIds:[], obs:"", validationComment:"", cliente:"", gp:"", filial:"", lider:"", gestorPMO:"", searched:false, premissas: defaultPremissas() };
     let pendingFap = "";
 
     // Mostrar packs somente após informar FAP
@@ -430,6 +431,70 @@ function toggleStepsByPacks(){
         cur = addDays(cur, 1);
       }
       return out;
+    }
+
+    function getPeriodDaysDiff(iniISO, fimISO){
+      if(!iniISO || !fimISO) return 0;
+      const ini = new Date(iniISO + "T00:00:00");
+      const fim = new Date(fimISO + "T00:00:00");
+      return Math.floor((fim - ini) / 86400000);
+    }
+
+    function isPeriodOver60Days(){
+      if(!state.dtIni || !state.dtFim) return false;
+      if(state.dtFim < state.dtIni) return false;
+      return getPeriodDaysDiff(state.dtIni, state.dtFim) > 60;
+    }
+
+    function needsLongPeriodReason(){
+      return isPeriodOver60Days() && !String(state.periodoMaior60Motivo || "").trim();
+    }
+
+    function renderLongPeriodReasonInfo(){
+      const info = document.getElementById("longPeriodReasonInfo");
+      if(!info) return;
+      if(isPeriodOver60Days()){
+        const motivo = String(state.periodoMaior60Motivo || "").trim();
+        info.style.display = "block";
+        info.textContent = motivo
+          ? `Motivo do período > 60 dias: ${motivo}`
+          : "Período maior que 60 dias: selecione um motivo.";
+        return;
+      }
+      info.style.display = "none";
+      info.textContent = "";
+    }
+
+    let longPeriodCtx = { open:false };
+    function openLongPeriodModal(){
+      const back = document.getElementById("longPeriodBackdrop");
+      if(!back) return false;
+      const sel = document.getElementById("longPeriodReason");
+      if(sel) sel.value = state.periodoMaior60Motivo || "";
+      back.style.display = "flex";
+      back.setAttribute("aria-hidden", "false");
+      longPeriodCtx.open = true;
+      return true;
+    }
+
+    function closeLongPeriodModal(){
+      const back = document.getElementById("longPeriodBackdrop");
+      if(!back) return;
+      back.style.display = "none";
+      back.setAttribute("aria-hidden", "true");
+      longPeriodCtx.open = false;
+    }
+
+    function handlePeriodInputChange(){
+      state.searched = false;
+      togglePacksVisibility();
+      if(!isPeriodOver60Days()){
+        state.periodoMaior60Motivo = "";
+      }
+      refreshPreview();
+      if(needsLongPeriodReason()){
+        openLongPeriodModal();
+      }
     }
     
     function hasCltAvailabilityInPeriod(){
@@ -527,6 +592,7 @@ function toggleStepsByPacks(){
       const snap = perFapData[fapVal] || {};
       if(snap.dtIni) state.dtIni = snap.dtIni;
       if(snap.dtFim) state.dtFim = snap.dtFim;
+      state.periodoMaior60Motivo = snap.periodoMaior60Motivo || "";
       if(Array.isArray(snap.packIds) && snap.packIds.length) state.packIds = snap.packIds.slice();
       if(typeof snap.obs === "string") state.obs = snap.obs;
       if(typeof snap.validationComment === "string") state.validationComment = snap.validationComment;
@@ -576,8 +642,8 @@ function toggleStepsByPacks(){
         loadProjectByFap(fapVal);
       });
     }
-    elIni.addEventListener("change", () => { state.dtIni = elIni.value; state.searched = false; togglePacksVisibility(); refreshPreview(); });
-    elFim.addEventListener("change", () => { state.dtFim = elFim.value; state.searched = false; togglePacksVisibility(); refreshPreview(); });
+    elIni.addEventListener("change", () => { state.dtIni = elIni.value; handlePeriodInputChange(); });
+    elFim.addEventListener("change", () => { state.dtFim = elFim.value; handlePeriodInputChange(); });
     elObs.addEventListener("input", () => { state.obs = elObs.value; });
     if(elP4Comment){
       elP4Comment.addEventListener("input", () => { state.validationComment = elP4Comment.value; });
@@ -662,6 +728,7 @@ function renderStepsP1(){
 
       toggleStepsByPacks();
       updateActionButtons();
+      renderLongPeriodReasonInfo();
     }
 
     document.getElementById("btnAvancar1").addEventListener("click", () => goto("p2"));
@@ -687,6 +754,15 @@ function renderStepsP1(){
       }
       if(state.dtFim < state.dtIni){
         if(showAlert) alert("Data fim nao pode ser menor que data inicio.");
+        return false;
+      }
+      if(needsLongPeriodReason()){
+        if(showAlert){
+          const opened = openLongPeriodModal();
+          if(!opened){
+            alert("Selecione um motivo para período maior que 60 dias.");
+          }
+        }
         return false;
       }
       if(!hasAnyPremissaSelected()){
@@ -1935,10 +2011,15 @@ if(btnEnviar){
         const reprogObs = reprog
           ? `Reprogramação: ${reprog.reason}${reprog.detail ? ` - ${reprog.detail}` : ""}`
           : "";
-        if(baseObs || reprogObs){
+        const longPeriodReason = (state.periodoMaior60Motivo || perFapData[state.fap]?.periodoMaior60Motivo || "").trim();
+        const longPeriodObs = longPeriodReason
+          ? `Justificativa período > 60 dias: ${longPeriodReason}`
+          : "";
+        if(baseObs || reprogObs || longPeriodObs){
           const baseHtml = baseObs ? `<div>${esc(baseObs)}</div>` : "";
           const reprogHtml = reprogObs ? `<div class="reprogHighlight">${esc(reprogObs)}</div>` : "";
-          obsText.innerHTML = `${baseHtml}${reprogHtml}`;
+          const longPeriodHtml = longPeriodObs ? `<div class="longPeriodHighlight">${esc(longPeriodObs)}</div>` : "";
+          obsText.innerHTML = `${baseHtml}${reprogHtml}${longPeriodHtml}`;
           obsWrap.style.display = "block";
         }else{
           obsWrap.style.display = "none";
@@ -1974,6 +2055,9 @@ if(btnEnviar){
       if(dtFimEl){
         dtFimEl.value = state.dtFim || toISODate(in7);
         state.dtFim = dtFimEl.value;
+      }
+      if(!isPeriodOver60Days()){
+        state.periodoMaior60Motivo = "";
       }
 
       if(!state.packIds || state.packIds.length === 0){
@@ -2559,6 +2643,7 @@ if(cbtn){
       if(rbtn) closeReprogramModal();
       if(e.target?.id === "reprogramBackdrop") closeReprogramModal();
       if(e.target?.id === "reprogramChoiceBackdrop") closeReprogramChoice();
+      if(e.target?.id === "longPeriodBackdrop") closeLongPeriodModal();
       const rConfirm = e.target?.closest?.("#btnReprogramConfirm");
       if(rConfirm){
         const reason = document.getElementById("reprogramReason")?.value || "";
@@ -2582,12 +2667,34 @@ if(cbtn){
         }
         applyEditLockUI();
       }
+
+      const lpCancel = e.target?.closest?.("#btnLongPeriodCancel, #btnLongPeriodClose");
+      if(lpCancel){
+        e.preventDefault();
+        closeLongPeriodModal();
+        return;
+      }
+      const lpConfirm = e.target?.closest?.("#btnLongPeriodConfirm");
+      if(lpConfirm){
+        e.preventDefault();
+        const reason = (document.getElementById("longPeriodReason")?.value || "").trim();
+        if(!reason){
+          alert("Selecione o motivo para período maior que 60 dias.");
+          return;
+        }
+        state.periodoMaior60Motivo = reason;
+        closeLongPeriodModal();
+        refreshPreview();
+        scheduleSave();
+        return;
+      }
     });
 
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape" && swapCtx.open) closeSwapModal();
       if(e.key === "Escape" && reprogramCtx.open) closeReprogramModal();
       if(e.key === "Escape" && reprogramChoiceCtx.open) closeReprogramChoice();
+      if(e.key === "Escape" && longPeriodCtx.open) closeLongPeriodModal();
     });
 
     ["swapSearch","swapProf","swapSort","swapOnlyFree"].forEach(id => {
